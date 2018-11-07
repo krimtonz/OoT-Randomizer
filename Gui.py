@@ -11,7 +11,7 @@ from tkinter.colorchooser import *
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
-from GuiUtils import ToolTips, set_icon, BackgroundTask, BackgroundTaskProgress, Dialog
+from GuiUtils import ToolTips, set_icon, BackgroundTask, BackgroundTaskProgress, Dialog, ValidatingEntry
 from Main import main
 from Utils import is_bundled, local_path, default_output_path, open_file, check_version
 from Patches import get_tunic_color_options, get_navi_color_options
@@ -38,7 +38,7 @@ def settings_to_guivars(settings, guivars):
                     if 'Custom Color' in info.gui_params['options'] and re.match(r'^[A-Fa-f0-9]{6}$', value):
                         guivar.set('Custom (#' + value + ')')
                     else:
-                        for gui_text,gui_value in info.gui_params['options'].items(): 
+                        for gui_text,gui_value in info.gui_params['options'].items():
                             if gui_value == value:
                                 guivar.set( gui_text )
                 else:
@@ -63,7 +63,7 @@ def guivars_to_settings(guivars):
             result[name] = bool(guivar.get())
         # dropdown/radiobox
         if info.type == str:
-            # set guivar to hexcode if custom color 
+            # set guivar to hexcode if custom color
             if re.match(r'^Custom \(#[A-Fa-f0-9]{6}\)$', guivar.get()):
                 result[name] = re.findall(r'[A-Fa-f0-9]{6}', guivar.get())[0]
             elif info.gui_params and 'options' in info.gui_params:
@@ -140,12 +140,12 @@ def guiMain(settings=None):
     # shared
     settingsFrame = Frame(mainWindow)
     settings_string_var = StringVar()
-    widgets['setting_string'] = Entry(settingsFrame, textvariable=settings_string_var, width=25)
+    widgets['setting_string'] = Entry(settingsFrame, textvariable=settings_string_var, width=30)
 
     def show_settings(event=None):
         settings = guivars_to_settings(guivars)
         settings_string_var.set( settings.get_settings_string() )
-        
+
         # Update any dependencies
         for info in setting_infos:
             if info.gui_params and 'dependency' in info.gui_params:
@@ -169,7 +169,7 @@ def guiMain(settings=None):
                     if widgets[info.name].winfo_class() == 'Scale':
                         widgets[info.name].configure(fg='Black'if dep_met else 'Grey')
 
-                
+
             if info.name in guivars and guivars[info.name].get() == 'Custom Color':
                 color = askcolor()
                 if color == (None, None):
@@ -234,7 +234,7 @@ def guiMain(settings=None):
 
     def open_output():
         open_file(output_path(''))
-    
+
     def output_dir_select():
         rom = filedialog.askdirectory(initialdir = default_output_path(guivars['output_dir'].get()))
         if rom != '':
@@ -343,7 +343,10 @@ def guiMain(settings=None):
                 # create the option menu
                 widgets[info.name] = Frame(frames[info.gui_params['group']])
 
-                entry = Entry(widgets[info.name], textvariable=guivars[info.name], width=30)
+                if 'validate' in info.gui_params:
+                    entry = ValidatingEntry(widgets[info.name], command=show_settings, validate=info.gui_params['validate'], textvariable=guivars[info.name], width=30)
+                else:
+                    entry = Entry(widgets[info.name], textvariable=guivars[info.name], width=30)
                 entry.pack(side=BOTTOM, anchor=W)
                 # label the option
                 if 'text' in info.gui_params:
@@ -383,7 +386,7 @@ def guiMain(settings=None):
     frames['navicolor'].pack( fill=BOTH, expand=True, anchor=W, side=TOP, pady=(5,1) )
     frames['navihint'].pack(  fill=BOTH, expand=True, anchor=W, side=TOP, pady=(5,1) )
 
-    
+
     notebook.pack(fill=BOTH, expand=True, padx=5, pady=5)
 
 
@@ -500,7 +503,7 @@ def guiMain(settings=None):
 
     seedLabel = Label(generateSeedFrame, text='Seed')
     guivars['seed'] = StringVar()
-    widgets['seed'] = Entry(generateSeedFrame, textvariable=guivars['seed'], width=25)
+    widgets['seed'] = Entry(generateSeedFrame, textvariable=guivars['seed'], width=30)
     seedLabel.pack(side=LEFT, padx=(55, 5))
     widgets['seed'].pack(side=LEFT)
     generateButton.pack(side=LEFT, padx=(5, 0))

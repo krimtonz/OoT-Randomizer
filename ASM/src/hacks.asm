@@ -12,7 +12,7 @@
 ; Replaces:
 ;   jal     8006FDCC ; Give Item
 .org 0xCB6874 ; Bg_Toki_Swd addr 809190F4 in func_8091902C
-    jal	    give_master_sword
+    jal     give_master_sword
 
 ; Replaces:
 ;   lui/addiu a1, 0x8011A5D0
@@ -25,6 +25,18 @@
 ;   jr      ra
 .org 0xAE59E0 ; In memory: 0x8006FA80
     j       after_time_travel
+
+
+;==================================================================================================
+; Door of Time Fix
+;==================================================================================================
+
+.org 0xAC8608; 800526A8
+    or      a0, s0
+    lh      t6, 0x00A4(a0)
+    li      at, 67
+    nop
+    nop
 
 ;==================================================================================================
 ; Item Overrides
