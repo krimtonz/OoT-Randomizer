@@ -58,7 +58,6 @@ void c_after_game_state_update() {
 	pad_pressed |= pad_pressed_raw;
 
 	if ((z64_link.state_flags_1 & BLOCK_DPAD_ACTIONS) == 0 && z64_file.file_index !=0xFF) {
-
 		if (pad_pressed & 0x0800) {
 			z64_game.link_age = !z64_game.link_age;
 
@@ -69,28 +68,20 @@ void c_after_game_state_update() {
 					break;
 				}
 			}
-
 			z64_game.entrance_index = entrance;
-			
-			
 			z64_game.scene_load_flag = 0x14;
-
 		}
-
 		if (z64_file.link_age == 0) {
-
 			if (pad_pressed & 0x0200 && z64_file.iron_boots) {
 				if (z64_file.equip_boots == 2) z64_file.equip_boots = 1;
 				else z64_file.equip_boots = 2;
 				z64_UpdateEquipment(&z64_game, &z64_link);
 			}
-
 			if ((pad_pressed & 0x0100) && z64_file.hover_boots) {
 				if (z64_file.equip_boots == 3) z64_file.equip_boots = 1;
 				else z64_file.equip_boots = 3;
 				z64_UpdateEquipment(&z64_game, &z64_link);
 			}
-
 		}
 	}
 }
