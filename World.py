@@ -27,6 +27,7 @@ class World(object):
         self._location_cache = {}
         self.required_locations = []
         self.shop_prices = {}
+        self.light_arrow_location = None
 
         # dump settings directly into world's namespace
         # this gives the world an attribute for every setting listed in Settings.py
@@ -90,7 +91,7 @@ class World(object):
         json_string = ""
         with io.open(file_path, 'r') as file:
             for line in file.readlines():
-                json_string += line.split('#')[0].rstrip('\n')
+                json_string += line.split('#')[0].replace('\n', ' ')
         region_json = json.loads(json_string)
 
         for region in region_json:
@@ -239,7 +240,7 @@ class World(object):
             location = self.get_location(location)
 
         # This check should never be false normally, but is here as a sanity check
-        if location.can_fill(self.state, item, False):
+        if location.can_fill_fast(item):
             location.item = item
             item.location = location
             item.price = location.price if location.price is not None else item.price

@@ -2,6 +2,7 @@ import argparse
 import re
 import math
 from Patches import get_tunic_color_options, get_navi_color_options, get_NaviSFX_options, get_HealthSFX_options
+from LocationList import location_table
 
 # holds the info for a single setting
 class Setting_Info():
@@ -142,22 +143,17 @@ class Scale(Setting_Widget):
 
 
 def parse_custom_tunic_color(s):
-    if s == 'Custom Color':
-        raise argparse.ArgumentTypeError('Specify custom color by using \'Custom (#xxxxxx)\'')
-    elif re.match(r'^Custom \(#[A-Fa-f0-9]{6}\)$', s):
-        return re.findall(r'[A-Fa-f0-9]{6}', s)[0]
-    elif s in get_tunic_color_options():
-        return s
-    else:
-        raise argparse.ArgumentTypeError('Invalid color specified')
-
+    return parse_color(s, get_tunic_color_options())
 
 def parse_custom_navi_color(s):
+    return parse_color(s, get_navi_color_options())
+
+def parse_color(s, color_choices):
     if s == 'Custom Color':
         raise argparse.ArgumentTypeError('Specify custom color by using \'Custom (#xxxxxx)\'')
     elif re.match(r'^Custom \(#[A-Fa-f0-9]{6}\)$', s):
         return re.findall(r'[A-Fa-f0-9]{6}', s)[0]
-    elif s in get_navi_color_options():
+    elif s in color_choices:
         return s
     else:
         raise argparse.ArgumentTypeError('Invalid color specified')
@@ -210,6 +206,9 @@ setting_infos = [
                     Use to select world to generate when there are multiple worlds.
                     ''',
             'type': int
+        },
+        {
+            'dependency': lambda guivar: guivar['compress_rom'].get() not in ['No Output', 'Patch File'],
         }),
     Checkbutton(
             name           = 'create_spoiler',
@@ -221,7 +220,6 @@ setting_infos = [
             gui_tooltip    = '''\
                              Enabling this will change the seed.
                              ''',
-            gui_dependency = lambda guivar: guivar['compress_rom'].get() != 'No ROM Output',
             default        = True,
             shared         = True,
             ),
@@ -259,7 +257,7 @@ setting_infos = [
                       people without sending the ROM file.
                       '''
         },
-        shared=True,
+        shared=False,
     ),
     Checkbutton(
             name           = 'open_forest',
@@ -354,7 +352,7 @@ setting_infos = [
                              All Dungeons:  Collect all spiritual stones and all medallions to create the bridge.
                              Open:          The bridge will spawn without an item requirement.
                              ''',
-            gui_text       = 'Rainbox Bridge Requirement',
+            gui_text       = 'Rainbow Bridge Requirement',
             gui_group      = 'open',
             gui_tooltip    = '''\
                              'All Dungeons': All Medallions and Stones
@@ -415,7 +413,6 @@ setting_infos = [
                              Even when enabled, some locations may still be able
                              to hold the keys needed to reach them.
                              ''',
-            gui_dependency = lambda guivar: guivar['logic_rules'].get() == 'Glitchless',
             default        = True,
             shared         = True,
             ),
@@ -437,7 +434,7 @@ setting_infos = [
                              how many you have.
         
                              Bombchus can be purchased for 60/99/180
-                             rupees once they are been found.
+                             rupees once they have been found.
         
                              Bombchu Bowling opens with Bombchus.
                              Bombchus are available at Kokiri Shop
@@ -459,7 +456,7 @@ setting_infos = [
             gui_tooltip    = '''\
                              Dungeons have exactly one major
                              item. This naturally makes each
-                             dungeon similar in value instaed
+                             dungeon similar in value instead
                              of valued based on chest count.
         
                              Spirit Temple Colossus hands count
@@ -501,6 +498,7 @@ setting_infos = [
                              enabled, then there will be hints for which
                              trials need to be completed.
                              ''',
+            gui_dependency = lambda guivar: not guivar['trials_random'].get(),
             shared         = True,
             ),
     Checkbutton(
@@ -679,7 +677,6 @@ setting_infos = [
                              Gerudo Card is required to enter
                              Gerudo Training Grounds.
                              ''',
-            gui_dependency = lambda guivar: guivar['gerudo_fortress'].get() != 'Start with Gerudo Card',
             shared         = True,
             ),
     Combobox(
@@ -926,7 +923,6 @@ setting_infos = [
                              requirements to make it more likely
                              that skipped trials can be avoided.
                              ''',
-            gui_dependency = lambda guivar: guivar['shuffle_bosskeys'].get() != 'Boss Keys: Remove (Keysy)',
             shared         = True,
             ),
     Combobox(
@@ -1004,23 +1000,6 @@ setting_infos = [
             gui_dependency = lambda guivar: not guivar['mq_dungeons_random'].get(),
             shared         = True,
             ),
-    Scale(
-            name           = 'logic_skulltulas',
-            default        = '50',
-            min            = 0,
-            max            = 50,
-            step           = 10,
-            args_help      = '''\
-                             Choose the maximum number of Gold Skulltula Tokens you will be expected to collect.
-                             ''',
-            gui_text       = 'Maximum Expected Skulltula Tokens',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             Choose the maximum number of Gold Skulltula
-                             Tokens you will be expected to collect.
-                             ''',
-            shared         = True,
-            ),
     Checkbutton(
             name           = 'logic_no_night_tokens_without_suns_song',
             args_help      = '''\
@@ -1028,129 +1007,12 @@ setting_infos = [
                              unless you have Sun's Song
                              ''',
             gui_text       = 'No Nighttime Skulltulas without Sun\'s Song',
-            gui_group      = 'rewards',
+            gui_group      = 'tricks',
             gui_tooltip    = '''\
                              GS Tokens that can only be obtained
                              during the night expect you to have Sun's
                              Song to collect them. This prevents needing
                              to wait until night for some locations.
-                             ''',
-            shared         = True,
-            ),
-    Checkbutton(
-            name           = 'logic_no_big_poes',
-            args_help      = '''\
-                             You will not be expected to collect 10 big poes.
-                             ''',
-            gui_text       = 'No Big Poes',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             The Big Poe vendor will not have a
-                             required item.
-                             ''',
-            shared         = True,
-            ),
-    Checkbutton(
-            name           = 'logic_no_child_fishing',
-            args_help      = '''\
-                             You will not be expected to obtain the child fishing reward.
-                             ''',
-            gui_text       = 'No Child Fishing',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             Fishing does not work correctly on
-                             Bizhawk.
-                             ''',
-            shared         = True,
-            ),
-    Checkbutton(
-            name           = 'logic_no_adult_fishing',
-            args_help      = '''\
-                             You will not be expected to obtain the adult fishing reward.
-                             ''',
-            gui_text       = 'No Adult Fishing',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             Fishing does not work correctly on
-                             Bizhawk.
-                             ''',
-            shared         = True,
-            ),
-    Checkbutton(
-            name           = 'logic_no_trade_skull_mask',
-            args_help      = '''\
-                             You will not be expected to show the Skull Mask at the forest stage.
-                             ''',
-            gui_text       = 'No Skull Mask Reward',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             Showing off the Skull Mask will
-                             not yield a required item.
-                             ''',
-            shared         = True,
-            ),
-    Checkbutton(
-            name           = 'logic_no_trade_mask_of_truth',
-            args_help      = '''\
-                             You will not be expected to show the Mask of Truth at the forest stage.
-                             ''',
-            gui_text       = 'No Mask of Truth Reward',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             Showing off the Mask of Truth
-                             will not yield a required item.
-                             ''',
-            shared         = True,
-            ),
-    Checkbutton(
-            name           = 'logic_no_1500_archery',
-            args_help      = '''\
-                             You will not be expected to win the 1500 point horseback archery reward.
-                             ''',
-            gui_text       = 'No 1500 Horseback Archery',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             Scoring 1500 points at horseback
-                             archery will not yield a required item.
-                             ''',
-            shared         = True,
-            ),
-    Checkbutton(
-            name           = 'logic_no_memory_game',
-            args_help      = '''\
-                             You will not be expected to play the ocarina memory game in Lost Woods.
-                             ''',
-            gui_text       = 'No Lost Woods Memory Game',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             Playing the ocarina memory game
-                             will not yield a required item.
-                             ''',
-            shared         = True,
-            ),
-    Checkbutton(
-            name           = 'logic_no_second_dampe_race',
-            args_help      = '''\
-                             You will not be expected to race Dampe a second time.
-                             ''',
-            gui_text       = 'No Racing Dampe a Second Time',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             The second Dampe race will
-                             not yield a required item.
-                             ''',
-            shared         = True,
-            ),
-    Checkbutton(
-            name           = 'logic_no_trade_biggoron',
-            args_help      = '''\
-                             You will not be expected to show the Claim Check to Biggoron.
-                             ''',
-            gui_text       = 'No Biggoron Reward',
-            gui_group      = 'rewards',
-            gui_tooltip    = '''\
-                             Showing the Claim Check to Biggoron
-                             will not yield a required item.
                              ''',
             shared         = True,
             ),
@@ -1187,9 +1049,18 @@ setting_infos = [
             gui_tooltip    = '''\
                              Select the earliest item that can appear in the adult trade sequence.
                              ''',
-            gui_dependency = lambda guivar: not guivar['logic_no_trade_biggoron'].get(),
             shared         = True,
             ),
+    Setting_Info('disabled_locations', list, math.ceil(math.log(len(location_table) + 2, 2)), True,
+        {
+            'default': [],
+            'help': '''\
+                    Choose a list of locations that will never be required to beat the game.
+                    '''
+        },
+        {
+            'options': list(location_table.keys()),
+        }),      
     Combobox(
             name           = 'logic_latest_adult_trade',
             default        = 'claim_check',
@@ -1222,7 +1093,6 @@ setting_infos = [
             gui_tooltip    = '''\
                              Select the latest item that can appear in the adult trade sequence.
                              ''',
-            gui_dependency = lambda guivar: not guivar['logic_no_trade_biggoron'].get(),
             shared         = True,
             ),
     Checkbutton(
@@ -1372,8 +1242,7 @@ setting_infos = [
                              Water Temple that could contain the Boss Key
                              as requiring Iron Boots.
                              ''',
-            gui_dependency = lambda guivar: guivar['shuffle_bosskeys'].get() != 'Boss Keys: Dungeon Only',
-            default        = True,
+            default        = False,
             shared         = True,
             ),
     Combobox(
@@ -1643,7 +1512,7 @@ setting_infos = [
                              ''',
             ),
 
-    Setting_Info('kokiricolor', str, 0, False,
+    Setting_Info('kokiri_color', str, 0, False,
         {
             'default': 'Kokiri Green',
             'type': parse_custom_tunic_color,
@@ -1656,7 +1525,7 @@ setting_infos = [
         },
         {
             'text': 'Kokiri Tunic Color',
-            'group': 'tuniccolor',
+            'group': 'tunic_color',
             'widget': 'Combobox',
             'default': 'Kokiri Green',
             'options': get_tunic_color_options(),
@@ -1667,7 +1536,7 @@ setting_infos = [
                       color from any color the N64 can draw.
                       '''
         }),
-    Setting_Info('goroncolor', str, 0, False,
+    Setting_Info('goron_color', str, 0, False,
         {
             'default': 'Goron Red',
             'type': parse_custom_tunic_color,
@@ -1680,7 +1549,7 @@ setting_infos = [
         },
         {
             'text': 'Goron Tunic Color',
-            'group': 'tuniccolor',
+            'group': 'tunic_color',
             'widget': 'Combobox',
             'default': 'Goron Red',
             'options': get_tunic_color_options(),
@@ -1691,7 +1560,7 @@ setting_infos = [
                       color from any color the N64 can draw.
                       '''
         }),
-    Setting_Info('zoracolor', str, 0, False,
+    Setting_Info('zora_color', str, 0, False,
         {
             'default': 'Zora Blue',
             'type': parse_custom_tunic_color,
@@ -1704,7 +1573,7 @@ setting_infos = [
         },
         {
             'text': 'Zora Tunic Color',
-            'group': 'tuniccolor',
+            'group': 'tunic_color',
             'widget': 'Combobox',
             'default': 'Zora Blue',
             'options': get_tunic_color_options(),
@@ -1715,7 +1584,7 @@ setting_infos = [
                       color from any color the N64 can draw.
                       '''
         }),
-    Setting_Info('navicolordefault', str, 0, False,
+    Setting_Info('navi_color_default', str, 0, False,
         {
             'default': 'White',
             'type': parse_custom_navi_color,
@@ -1728,7 +1597,7 @@ setting_infos = [
         },
         {
             'text': 'Navi Idle',
-            'group': 'navicolor',
+            'group': 'navi_color',
             'widget': 'Combobox',
             'default': 'White',
             'options': get_navi_color_options(),
@@ -1739,7 +1608,7 @@ setting_infos = [
                       color from any color the N64 can draw.
                       '''
         }),
-    Setting_Info('navicolorenemy', str, 0, False,
+    Setting_Info('navi_color_enemy', str, 0, False,
         {
             'default': 'Yellow',
             'type': parse_custom_navi_color,
@@ -1752,7 +1621,7 @@ setting_infos = [
         },
         {
             'text': 'Navi Targeting Enemy',
-            'group': 'navicolor',
+            'group': 'navi_color',
             'widget': 'Combobox',
             'default': 'Yellow',
             'options': get_navi_color_options(),
@@ -1763,7 +1632,7 @@ setting_infos = [
                       color from any color the N64 can draw.
                       '''
         }),
-    Setting_Info('navicolornpc', str, 0, False,
+    Setting_Info('navi_color_npc', str, 0, False,
         {
             'default': 'Light Blue',
             'type': parse_custom_navi_color,
@@ -1776,7 +1645,7 @@ setting_infos = [
         },
         {
             'text': 'Navi Targeting NPC',
-            'group': 'navicolor',
+            'group': 'navi_color',
             'widget': 'Combobox',
             'default': 'Light Blue',
             'options': get_navi_color_options(),
@@ -1787,7 +1656,7 @@ setting_infos = [
                       color from any color the N64 can draw.
                       '''
         }),
-    Setting_Info('navicolorprop', str, 0, False,
+    Setting_Info('navi_color_prop', str, 0, False,
         {
             'default': 'Green',
             'type': parse_custom_navi_color,
@@ -1800,7 +1669,7 @@ setting_infos = [
         },
         {
             'text': 'Navi Targeting Prop',
-            'group': 'navicolor',
+            'group': 'navi_color',
             'widget': 'Combobox',
             'default': 'Green',
             'options': get_navi_color_options(),

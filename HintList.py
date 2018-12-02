@@ -307,30 +307,10 @@ hintTable = {
 # This specifies which hints will never appear due to either having known or known useless contents or due to the locations not existing.
 
 def hintExclusions(world):
-    expected_skulltulas = world.logic_skulltulas
     exclusions = []
-    if world.logic_no_trade_skull_mask:
-        exclusions.append('Deku Theater Skull Mask')
-    if world.logic_no_trade_mask_of_truth:
-        exclusions.append('Deku Theater Mask of Truth')
-    if world.logic_no_trade_biggoron:
-        exclusions.append('Biggoron')
-    if world.logic_no_child_fishing:
-        exclusions.append('Child Fishing')
-    if world.logic_no_adult_fishing:
-        exclusions.append('Adult Fishing')
-    if world.logic_no_big_poes:
-        exclusions.append('10 Big Poes')
-    if expected_skulltulas < 50:
-        exclusions.append('50 Gold Skulltula Reward')
-    if expected_skulltulas < 40:
-        exclusions.append('40 Gold Skulltula Reward')
-    if expected_skulltulas < 30:
-        exclusions.append('30 Gold Skulltula Reward')
-    if expected_skulltulas < 20:
-        exclusions.append('20 Gold Skulltula Reward')
-    if expected_skulltulas < 10:
-        exclusions.append('10 Gold Skulltula Reward')
+        
+    exclusions.extend(world.disabled_locations)
+
     if not world.shuffle_ocarinas:
         exclusions.append('Ocarina of Time')
     if world.tokensanity != 'all':
