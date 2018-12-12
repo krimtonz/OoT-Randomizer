@@ -25,7 +25,7 @@ from Hints import buildGossipHints
 from Utils import default_output_path, is_bundled, subprocess_args, data_path
 from version import __version__
 from N64Patch import create_patch_file, apply_patch_file
-from SettingsList import setting_infos
+from SettingsList import setting_infos, logic_tricks
 from Rules import set_rules
 
 
@@ -45,6 +45,11 @@ def main(settings, window=dummy_window()):
     logger = logging.getLogger('')
 
     worlds = []
+
+    allowed_tricks = {}
+    for trick in logic_tricks.values():
+        settings.__dict__[trick['name']] = trick['name'] in settings.allowed_tricks
+
 
     # we load the rom before creating the seed so that error get caught early
     if settings.compress_rom == 'None' and not settings.create_spoiler:
@@ -92,7 +97,7 @@ def main(settings, window=dummy_window()):
         create_dungeons(world)
 
         world.initialize_entrances()
-        
+
         if settings.shopsanity != 'off':
             world.random_shop_prices()
 
@@ -166,7 +171,7 @@ def main(settings, window=dummy_window()):
                     file_path = os.path.join(output_dir, file)
                     patch_archive.write(file_path, file, compress_type=zipfile.ZIP_DEFLATED)
             for file in file_list:
-                os.remove(os.path.join(output_dir, file))          
+                os.remove(os.path.join(output_dir, file))
         window.update_progress(95)
 
     elif settings.compress_rom != 'None':
@@ -177,9 +182,10 @@ def main(settings, window=dummy_window()):
 
         window.update_status('Saving Uncompressed ROM')
         if settings.world_count > 1:
-            output_path = os.path.join(output_dir, '%sP%d.z64' % (outfilebase, settings.player_num))
+            filename = "%sP%d.z64" % (outfilebase, settings.player_num)
         else:
-            output_path = os.path.join(output_dir, '%s.z64' % outfilebase)
+            filename = '%s.z64' % outfilebase
+        output_path = os.path.join(output_dir, filename)
         rom.write_to_file(output_path)
         if settings.compress_rom == 'True':
             window.update_status('Compressing ROM')
@@ -207,7 +213,7 @@ def main(settings, window=dummy_window()):
                 logger.info('OS not supported for compression')
 
             if compressor_path != "":
-                run_process(window, logger, [compressor_path, output_path, os.path.join(output_dir, '%s-comp.z64' % outfilebase)])
+                run_process(window, logger, [compressor_path, output_path, output_path[:output_path.rfind('.')] + '-comp.z64'])
             os.remove(output_path)
         window.update_progress(95)
 
@@ -388,4 +394,3 @@ def create_playthrough(spoiler):
 
     # we can finally output our playthrough
     spoiler.playthrough = OrderedDict([(str(i + 1), {location: location.item for location in sphere}) for i, sphere in enumerate(collection_spheres)])
-

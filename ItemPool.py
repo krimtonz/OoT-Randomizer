@@ -827,6 +827,11 @@ def get_pool_core(world):
         placed_items.update(vanilla_deku_scrubs)
 
     pool.extend(alwaysitems)
+    if world.start_with_fast_travel:
+        pool.remove('Farores Wind')
+        world.state.collect(ItemFactory('Farores Wind'))
+        pool.extend(get_junk_item())
+    
     if world.dungeon_mq['Deku Tree']:
         pool.extend(DT_MQ)
     else:
@@ -882,6 +887,13 @@ def get_pool_core(world):
     pool.append(tradeitem)
 
     pool.extend(songlist)
+    if world.start_with_fast_travel:
+        pool.remove('Prelude of Light')
+        world.state.collect(ItemFactory('Prelude of Light'))
+        pool.extend(get_junk_item())
+        pool.remove('Serenade of Water')
+        world.state.collect(ItemFactory('Serenade of Water'))
+        pool.extend(get_junk_item())
 
     if world.shuffle_mapcompass == 'remove' or world.shuffle_mapcompass == 'startwith':
         for item in [item for dungeon in world.dungeons for item in dungeon.dungeon_items]:
@@ -899,12 +911,11 @@ def get_pool_core(world):
         world.state.collect(ItemFactory('Small Key (Fire Temple)'))
 
     if world.item_pool_value == 'plentiful':
+        if not world.shuffle_kokiri_sword:
+            replace_max_item(easy_items, 'Kokiri Sword', 0)
         pool.extend(easy_items)
     else:
         pool.extend(normal_items)
-
-    if world.damage_multiplier == 'ohko':
-        replace_max_item(pool, 'Ice Trap', 0)
 
     for item,max in item_difficulty_max[world.item_pool_value].items():
         replace_max_item(pool, item, max)

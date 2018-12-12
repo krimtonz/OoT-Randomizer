@@ -1,18 +1,19 @@
 import random
+import struct
+import itertools
 
 from World import World
 from Rom import LocalRom
 from Spoiler import Spoiler
-
 from Hints import writeGossipStoneHints, buildBossRewardHints, \
         buildGanonText, getSimpleHintNoPrefix
 from Utils import data_path
 from Messages import read_messages, update_message_by_id, read_shop_items, \
         write_shop_items, remove_unused_messages, make_player_message, \
-        add_song_messages, update_item_messages, \
-        message_patch_for_dungeon_items, repack_messages, shuffle_messages
+        add_item_messages, repack_messages, shuffle_messages
 from OcarinaSongs import replace_songs
 from MQ import patch_files, File, update_dmadata, insert_space, add_relocations
+import Sounds as sfx
 
 
 tunic_colors = {
@@ -75,86 +76,6 @@ NaviColors = {
 }
 
 
-NaviSFX = {
-    'None'          : 0x0000,
-    'Cluck'         : 0x2812,
-    'Rupee'         : 0x4803,
-    'Softer Beep'   : 0x4804,
-    'Recovery Heart': 0x480B,
-    'Timer'         : 0x481A,
-    'Low Health'    : 0x481B,
-    'Notification'  : 0x4820,
-    'Tambourine'    : 0x4842,
-    'Carrot Refill' : 0x4845,
-    'Zelda - Gasp'  : 0x6879,
-    'Mweep!'        : 0x687A,
-    'Ice Break'     : 0x0875,
-    'Explosion'     : 0x180E,
-    'Crate'         : 0x2839,
-    'Great Fairy'   : 0x6858,
-    'Moo'           : 0x28DF,
-    'Bark'          : 0x28D8,
-    'Ribbit'        : 0x28B1,
-    'Broken Pot'    : 0x2887,
-    'Cockadoodledoo': 0x2813,
-    'Epona'         : 0x2805,
-    'Gold Skulltula': 0x39DA,
-    'Redead'        : 0x38E5,
-    'Poe'           : 0x38EC,
-    'Ruto'          : 0x6863,
-    'Howl'          : 0x28AE,
-    'Business Scrub': 0x3882,
-    'Guay'          : 0x38B6,
-    'H`lo!'         : 0x6844
-}
-
-
-HealthSFX = {
-    'None'          : 0x0000,
-    'Cluck'         : 0x2812,
-    'Softer Beep'   : 0x4804,
-    'Recovery Heart': 0x480B,
-    'Timer'         : 0x481A,
-    'Notification'  : 0x4820,
-    'Tambourine'    : 0x4842,
-    'Carrot Refill' : 0x4845,
-    'Navi - Random' : 0x6843,
-    'Navi - Hey!'   : 0x685F,
-    'Zelda - Gasp'  : 0x6879,
-    'Mweep!'        : 0x687A,
-    'Iron Boots'    : 0x080D,
-    'Hammer'        : 0x180A,
-    'Sword Bounce'  : 0x181A,
-    'Bow'           : 0x1830,
-    'Gallop'        : 0x2804,
-    'Drawbridge'    : 0x280E,
-    'Switch'        : 0x2815,
-    'Bomb Bounce'   : 0x282F,
-    'Bark'          : 0x28D8,
-    'Ribbit'        : 0x28B1,
-    'Broken Pot'    : 0x2887,
-    'Business Scrub': 0x3882,
-    'Guay'          : 0x38B6,
-    'Bongo Bongo'   : 0x3950
-}
-
-
-def get_NaviSFX():
-    return list(NaviSFX.keys())
-
-
-def get_NaviSFX_options():
-    return ["Default", "Random Choice"] + get_NaviSFX()
-
-
-def get_HealthSFX():
-    return list(HealthSFX.keys())
-
-
-def get_HealthSFX_options():
-    return ["Default", "Random Choice"] + get_HealthSFX()
-
-
 def get_tunic_colors():
     return list(tunic_colors.keys())
 
@@ -172,10 +93,10 @@ def get_navi_color_options():
 
 
 def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
-    with open(data_path('rom_patch.txt'), 'r') as stream:
+    with open(data_path('generated/rom_patch.txt'), 'r') as stream:
         for line in stream:
             address, value = [int(x, 16) for x in line.split(',')]
-            rom.write_byte(address, value)
+            rom.write_int32(address, value)
     rom.scan_dmadata_update()
 
     # Write Randomizer title screen logo
@@ -230,7 +151,6 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     if world.bombchus_in_logic:
         rom.write_int32(rom.sym('BOMBCHUS_IN_LOGIC'), 1)
 
-
     # Change graveyard graves to not allow grabbing on to the ledge
     rom.write_byte(0x0202039D, 0x20)
     rom.write_byte(0x0202043C, 0x24)
@@ -258,23 +178,26 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     Block_code = [0x00, 0x00, 0x00, 0x01, 0x00, 0x21, 0x00, 0x01, 0x00, 0x02, 0x00, 0x02]
     rom.write_bytes(0x1FC0CF8, Block_code)
 
+    # songs as items flag
+    songs_as_items = world.shuffle_song_items or world.start_with_fast_travel
+
     # Speed learning Zelda's Lullaby
     rom.write_int32s(0x02E8E90C, [0x000003E8, 0x00000001]) # Terminator Execution
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0x0073, 0x001, 0x0002, 0x0002]) # ID, start, end, end
     else:
         rom.write_int16s(None, [0x0073, 0x003B, 0x003C, 0x003C]) # ID, start, end, end
 
 
     rom.write_int32s(0x02E8E91C, [0x00000013, 0x0000000C]) # Textbox, Count
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0xFFFF, 0x0000, 0x0010, 0xFFFF, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
     else:
         rom.write_int16s(None, [0x0017, 0x0000, 0x0010, 0x0002, 0x088B, 0xFFFF]) # ID, start, end, type, alt1, alt2
     rom.write_int16s(None, [0x00D4, 0x0011, 0x0020, 0x0000, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
 
     # Speed learning Sun's Song
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int32(0x0332A4A4, 0xFFFFFFFF) # Header: frame_count
     else:
         rom.write_int32(0x0332A4A4, 0x0000003C) # Header: frame_count
@@ -284,7 +207,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_int16s(None, [0x00D3, 0x0011, 0x0020, 0x0000, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
 
     # Speed learning Saria's Song
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int32(0x020B1734, 0xFFFFFFFF) # Header: frame_count
     else:
         rom.write_int32(0x020B1734, 0x0000003C) # Header: frame_count
@@ -302,13 +225,13 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
 
     # Speed learning Epona's Song
     rom.write_int32s(0x029BEF60, [0x000003E8, 0x00000001]) # Terminator Execution
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0x005E, 0x0001, 0x0002, 0x0002]) # ID, start, end, end
     else:
         rom.write_int16s(None, [0x005E, 0x000A, 0x000B, 0x000B]) # ID, start, end, end
 
     rom.write_int32s(0x029BECB0, [0x00000013, 0x00000002]) # Textbox, Count
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0xFFFF, 0x0000, 0x0009, 0xFFFF, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
     else:
         rom.write_int16s(None, [0x00D2, 0x0000, 0x0009, 0x0000, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
@@ -316,13 +239,13 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
 
     # Speed learning Song of Time
     rom.write_int32s(0x0252FB98, [0x000003E8, 0x00000001]) # Terminator Execution
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0x0035, 0x0001, 0x0002, 0x0002]) # ID, start, end, end
     else:
         rom.write_int16s(None, [0x0035, 0x003B, 0x003C, 0x003C]) # ID, start, end, end
 
     rom.write_int32s(0x0252FC80, [0x00000013, 0x0000000C]) # Textbox, Count
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0xFFFF, 0x0000, 0x0010, 0xFFFF, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
     else:
         rom.write_int16s(None, [0x0019, 0x0000, 0x0010, 0x0002, 0x088B, 0xFFFF]) # ID, start, end, type, alt1, alt2
@@ -331,7 +254,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_int32(0x01FC3B84, 0xFFFFFFFF) # Other Header?: frame_count
 
     # Speed learning Song of Storms
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int32(0x03041084, 0xFFFFFFFF) # Header: frame_count
     else:
         rom.write_int32(0x03041084, 0x0000000A) # Header: frame_count
@@ -341,7 +264,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_int16s(None, [0xFFFF, 0x00BE, 0x00C8, 0xFFFF, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
 
     # Speed learning Minuet of Forest
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int32(0x020AFF84, 0xFFFFFFFF) # Header: frame_count
     else:
         rom.write_int32(0x020AFF84, 0x0000003C) # Header: frame_count
@@ -361,7 +284,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_int16s(None, [0x0004, 0x0000, 0x0000, 0x0000]) #action, start, end, ????
 
     # Speed learning Bolero of Fire
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int32(0x0224B5D4, 0xFFFFFFFF) # Header: frame_count
     else:
         rom.write_int32(0x0224B5D4, 0x0000003C) # Header: frame_count
@@ -381,7 +304,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_int16s(0x0224B888, [0x0000]) #action
 
     # Speed learning Serenade of Water
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int32(0x02BEB254, 0xFFFFFFFF) # Header: frame_count
     else:
         rom.write_int32(0x02BEB254, 0x0000003C) # Header: frame_count
@@ -410,14 +333,14 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_int32(0x01FFFDF4, 0x0000003C) # Header: frame_count
 
     rom.write_int32s(0x02000FD8, [0x00000013, 0x0000000E]) # Textbox, Count
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0xFFFF, 0x0000, 0x0010, 0xFFFF, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
     else:
         rom.write_int16s(None, [0x0013, 0x0000, 0x0010, 0x0002, 0x088B, 0xFFFF]) # ID, start, end, type, alt1, alt2
     rom.write_int16s(None, [0x0077, 0x0011, 0x0020, 0x0000, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
 
     rom.write_int32s(0x02000128, [0x000003E8, 0x00000001]) # Terminator Execution
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0x0032, 0x0001, 0x0002, 0x0002]) # ID, start, end, end
     else:
         rom.write_int16s(None, [0x0032, 0x003A, 0x003B, 0x003B]) # ID, start, end, end
@@ -426,14 +349,14 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_int32(0x0218AF14, 0x0000003C) # Header: frame_count
 
     rom.write_int32s(0x0218C574, [0x00000013, 0x00000008]) # Textbox, Count
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0xFFFF, 0x0000, 0x0010, 0xFFFF, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
     else:
         rom.write_int16s(None, [0x0012, 0x0000, 0x0010, 0x0002, 0x088B, 0xFFFF]) # ID, start, end, type, alt1, alt2
     rom.write_int16s(None, [0x0076, 0x0011, 0x0020, 0x0000, 0xFFFF, 0xFFFF]) # ID, start, end, type, alt1, alt2
 
     rom.write_int32s(0x0218B478, [0x000003E8, 0x00000001]) # Terminator Execution
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int16s(None, [0x0030, 0x0001, 0x0002, 0x0002]) # ID, start, end, end
     else:
         rom.write_int16s(None, [0x0030, 0x003A, 0x003B, 0x003B]) # ID, start, end, end
@@ -447,7 +370,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_int16s(0x0218AF50, [0x003E, 0x0011, 0x0020, 0x0000]) #action, start, end, ????
 
     # Speed learning Prelude of Light
-    if world.shuffle_song_items:
+    if songs_as_items:
         rom.write_int32(0x0252FD24, 0xFFFFFFFF) # Header: frame_count
     else:
         rom.write_int32(0x0252FD24, 0x0000003C) # Header: frame_count
@@ -556,11 +479,15 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_int16s(0x31AA830, [0x006F, 0x0001, 0x0002, 0x0002]) #Light
 
     # Speed obtaining Fairy Ocarina
-    rom.write_bytes(0x2150CD0, [0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x30])
-    Block_code = [0xFF, 0xFF, 0x00, 0x00, 0x00, 0x3A, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+    rom.write_bytes(0x2151230, [0x00, 0x72, 0x00, 0x3C, 0x00, 0x3D, 0x00, 0x3D])
+    Block_code = [0x00, 0x4A, 0x00, 0x00, 0x00, 0x3A, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
                   0xFF, 0xFF, 0x00, 0x3C, 0x00, 0x81, 0xFF, 0xFF]
     rom.write_bytes(0x2151240, Block_code)
     rom.write_bytes(0x2150E20, [0xFF, 0xFF, 0xFA, 0x4C])
+
+    if world.shuffle_ocarinas:
+        symbol = rom.sym('OCARINAS_SHUFFLED')
+        rom.write_byte(symbol,0x01)
 
     # Speed Zelda Light Arrow cutscene
     rom.write_bytes(0x2531B40, [0x00, 0x28, 0x00, 0x01, 0x00, 0x02, 0x00, 0x02])
@@ -756,7 +683,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     rom.write_bytes(0xCC4024, [0x00, 0x00, 0x00, 0x00])
 
     #Give hp after first ocarina minigame round
-    rom.write_bytes(0xDF2204, [0x24, 0x03, 0x00, 0x02]) 
+    rom.write_bytes(0xDF2204, [0x24, 0x03, 0x00, 0x02])
 
     # Allow owl to always carry the kid down Death Mountain
     rom.write_bytes(0xE304F0, [0x24, 0x0E, 0x00, 0x01])
@@ -829,8 +756,8 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
 
         table_len = len(initial_save_table)
         if table_len > 0x400:
-            raise Exception("The Initial Save Table has exceeded it's maximum capacity: 0x%03X/0x400" % table_len)
-        rom.write_bytes(0x3481800, initial_save_table)
+            raise Exception("The Initial Save Table has exceeded its maximum capacity: 0x%03X/0x400" % table_len)
+        rom.write_bytes(rom.sym('INITIAL_SAVE_DATA'), initial_save_table)
 
 
     # Initial Save Data
@@ -912,7 +839,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
 
 
     # Set up Rainbow Bridge conditions
-    symbol = rom.sym('RAINBOW_BRIDGE_CONDITION') 
+    symbol = rom.sym('RAINBOW_BRIDGE_CONDITION')
     if world.bridge == 'open':
         rom.write_int32(symbol, 0)
         write_bits_to_save(0xEDC, 0x20) # "Rainbow Bridge Built by Sages"
@@ -920,6 +847,12 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
         rom.write_int32(symbol, 1)
     elif world.bridge == 'dungeons':
         rom.write_int32(symbol, 2)
+    elif world.bridge == 'stones':
+        rom.write_int32(symbol, 3)
+    elif world.bridge == 'vanilla':
+        rom.write_int32(symbol, 4)
+    elif world.bridge == 'tokens':
+        rom.write_int32(symbol, 5)
 
     if world.open_forest:
         write_bits_to_save(0xED5, 0x10) # "Showed Mido Sword & Shield"
@@ -974,6 +907,23 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
         write_bits_to_save(0x00AE, 0x06) # "Spirit Map/Compass"
         write_bits_to_save(0x00B0, 0x06) # "BotW Map/Compass"
         write_bits_to_save(0x00B1, 0x06) # "Ice Map/Compass"
+
+    if world.start_with_rupees:
+        write_byte_to_save(0x0035, 0x63) # start with 99 rupees
+
+    if world.start_with_deku_equipment:
+        if world.shopsanity == "off":
+            write_bits_to_save(0x009D, 0x10) # start with Deku Shield
+            write_bits_to_save(0x0071, 0x10) # equip Deku Shield
+        write_byte_to_save(0x0074, 0x00) # Deku stick in 1st inventory slot
+        write_byte_to_save(0x008C, 0x0A) # start with 10 Deku sticks
+        write_byte_to_save(0x0075, 0x01) # Deku nut in 2nd inventory slot
+        write_byte_to_save(0x008D, 0x14) # start with 20 Deku nuts
+        write_bits_to_save(0x00A1, 0x12) # enable Deku stick/nut base capacity
+
+    if world.start_with_fast_travel:
+        write_bits_to_save(0x00A6, 0x09) # start with Prelude of Light & Serenade of Water
+        write_byte_to_save(0x007F, 0x0D) # Farore's Wind in 12th inventory slot
 
     # Revert change that Skips the Epona Race
     if not world.no_epona_race:
@@ -1078,6 +1028,12 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
         new_message = "\x1AWait a minute! WOW!\x04\x1AYou have earned \x05\x41%d points\x05\x40!\x04\x1AYoung man, you are a genuine\x01\x05\x41Ghost Hunter\x05\x40!\x04\x1AIs that what you expected me to\x01say? Heh heh heh!\x04\x1ABecause of you, I have extra\x01inventory of \x05\x41Big Poes\x05\x40, so this will\x01be the last time I can buy a \x01ghost.\x04\x1AYou're thinking about what I \x01promised would happen when you\x01earned %d points. Heh heh.\x04\x1ADon't worry, I didn't forget.\x01Just take this." % (poe_points, poe_points)
         update_message_by_id(messages, 0x70f8, new_message)
 
+
+    # use faster jabu elevator
+    if not world.dungeon_mq['Jabu Jabus Belly'] and world.shuffle_scrubs == 'off':
+        symbol = rom.sym('JABU_ELEVATOR_ENABLE')
+        rom.write_byte(symbol, 0x01)
+
     # Sets hooks for gossip stone changes
 
     symbol = rom.sym("GOSSIP_HINT_CONDITION");
@@ -1086,7 +1042,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
         rom.write_int32(symbol, 0)
     else:
         writeGossipStoneHints(spoiler, world, messages)
-        
+
         if world.hints == 'mask':
             rom.write_int32(symbol, 0)
         elif world.hints == 'always':
@@ -1100,11 +1056,11 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
 
     # Write item overrides
     override_table = get_override_table(world)
-    rom.write_bytes(0x3481000, sum(override_table, []))
-    rom.write_byte(0x03481C00, world.id + 1) # Write player ID
+    rom.write_bytes(rom.sym('cfg_item_overrides'), get_override_table_bytes(override_table))
+    rom.write_byte(rom.sym('PLAYER_ID'), world.id + 1) # Write player ID
 
     # Revert Song Get Override Injection
-    if not world.shuffle_song_items:
+    if not songs_as_items:
         # general get song
         rom.write_int32(0xAE5DF8, 0x240200FF)
         rom.write_int32(0xAE5E04, 0xAD0F00A4)
@@ -1144,7 +1100,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
         locationaddress = location.address
         secondaryaddress = location.address2
 
-        if location.type == 'Song' and not world.shuffle_song_items:
+        if location.type == 'Song' and not songs_as_items:
             bit_mask_pointer = 0x8C34 + ((special['item_id'] - 0x65) * 4)
             rom.write_byte(locationaddress, special['song_id'])
             next_song_id = special['song_id'] + 0x0D
@@ -1380,7 +1336,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
             rom.write_int16(0x321B176, 0xFC40) # original 0xFC48
 
     # give dungeon items the correct messages
-    message_patch_for_dungeon_items(messages, shop_items, world)
+    add_item_messages(messages, shop_items, world)
     if world.enhance_map_compass:
         reward_list = {'Kokiri Emerald':   "\x05\x42Kokiri Emerald\x05\x40",
                        'Goron Ruby':       "\x05\x41Goron Ruby\x05\x40",
@@ -1439,12 +1395,6 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     # update happy mask shop to use new SOLD OUT text id
     rom.write_int16(shop_item_file.start + 0x1726, shop_items[0x26].description_message)
 
-    # add song messages
-    add_song_messages(messages, world)
-
-    # reduce item message lengths
-    update_item_messages(messages, world)
-
     # Add 3rd Wallet Upgrade
     rom.write_int16(0xB6D57E, 0x0003)
     rom.write_int16(0xB6EC52, 999)
@@ -1486,12 +1436,38 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     return rom
 
 
+item_row_struct = struct.Struct('>BBHHxBIIhh') # Match item_row_t in item_table.h
+
+
+def read_rom_item(rom, item_id):
+    addr = rom.sym('item_table') + (item_id * item_row_struct.size)
+    row_bytes = rom.read_bytes(addr, item_row_struct.size)
+    row = item_row_struct.unpack(row_bytes)
+
+    graphic_id = row[4]
+    fast_chest = False
+    if graphic_id >= 0x80:
+        graphic_id = 0x100 - graphic_id
+        fast_chest = True
+
+    return {
+        'base_item_id': row[0],
+        'action_id': row[1],
+        'text_id': row[2],
+        'object_id': row[3],
+        'graphic_id': graphic_id,
+        'fast_chest': fast_chest,
+    }
+
+
+
 def get_override_table(world):
-    override_entries = []
-    for location in world.get_filled_locations():
-        override_entries.append(get_override_entry(location))
-    override_entries.sort()
-    return override_entries
+    return list(filter(lambda val: val != None, map(get_override_entry, world.get_filled_locations())))
+
+
+override_struct = struct.Struct('>xBBBxBH') # match override_t in get_items.c
+def get_override_table_bytes(override_table):
+    return b''.join(sorted(itertools.starmap(override_struct.pack, override_table)))
 
 
 def get_override_entry(location):
@@ -1499,25 +1475,29 @@ def get_override_entry(location):
     default = location.default
     item_id = location.item.index
     if None in [scene, default, item_id]:
-        return []
+        return None
 
-    player_id = (location.item.world.id + 1) << 3
+    player_id = location.item.world.id + 1
 
-    if location.type in ['NPC', 'BossHeart', 'Song']:
-        return [scene, player_id | 0x00, default, item_id]
+    if location.type in ['NPC', 'BossHeart']:
+        type = 0
     elif location.type == 'Chest':
-        flag = default & 0x1F
-        return [scene, player_id | 0x01, flag, item_id]
+        type = 1
+        default &= 0x1F
     elif location.type == 'Collectable':
-        return [scene, player_id | 0x02, default, item_id]
+        type = 2
     elif location.type == 'GS Token':
-        return [scene, player_id | 0x03, default, item_id]
+        type = 3
     elif location.type == 'Shop' and location.item.type != 'Shop':
-        return [scene, player_id | 0x00, default, item_id]
+        type = 0
     elif location.type == 'GrottoNPC' and location.item.type != 'Shop':
-        return [scene, player_id | 0x04, default, item_id]
+        type = 4
+    elif location.type in ['Song', 'Cutscene']:
+        type = 5
     else:
-        return []
+        return None
+
+    return (scene, type, default, player_id, item_id)
 
 
 chestTypeMap = {
@@ -1539,45 +1519,6 @@ chestTypeMap = {
     0xE000: [0x5000, 0x0000, 0x2000], #Large
     0xF000: [0x5000, 0x0000, 0x2000], #Large
 }
-
-
-chestAnimationExtendedFast = [
-    0x87, # Progressive Nut Capacity
-    0x88, # Progressive Stick Capacity
-    0x98, # Deku Tree Compass
-    0x99, # Dodongo's Cavern Compass
-    0x9A, # Jabu Jabu Compass
-    0x9B, # Forest Temple Compass
-    0x9C, # Fire Temple Compass
-    0x9D, # Water Temple Compass
-    0x9E, # Spirit Temple Compass
-    0x9F, # Shadow Temple Compass
-    0xA0, # Bottom of the Well Compass
-    0xA1, # Ice Cavern Compass
-    0xA2, # Deku Tree Map
-    0xA3, # Dodongo's Cavern Map
-    0xA4, # Jabu Jabu Map
-    0xA5, # Forest Temple Map
-    0xA6, # Fire Temple Map
-    0xA7, # Water Temple Map
-    0xA8, # Spirit Temple Map
-    0xA9, # Shadow Temple Map
-    0xAA, # Bottom of the Well Map
-    0xAB, # Ice Cavern Map
-    0xB6, # Recovery Heart
-    0xB7, # Arrows (5)
-    0xB8, # Arrows (10)
-    0xB9, # Arrows (30)
-    0xBA, # Bombs (5)
-    0xBB, # Bombs (10)
-    0xBC, # Bombs (20)
-    0xBD, # Deku Nuts (5)
-    0xBE, # Deku Nuts (10)
-    0xD0, # Deku Stick (1)
-    0xD1, # Deku Seeds (30)
-    0xD2, # Deku Shield
-    0xD3, # Hylian Shield
-]
 
 
 def room_get_actors(rom, actor_func, room_data, scene, alternate=None):
@@ -1656,8 +1597,8 @@ def get_actor_list(rom, actor_func):
 
 def get_override_itemid(override_table, scene, type, flags):
     for entry in override_table:
-        if len(entry) == 4 and entry[0] == scene and (entry[1] & 0x07) == type and entry[2] == flags:
-            return entry[3]
+        if entry[0] == scene and (entry[1] & 0x07) == type and entry[2] == flags:
+            return entry[4]
     return None
 
 
@@ -1679,12 +1620,8 @@ def update_chest_sizes(rom, override_table):
 
         itemType = 0  # Item animation
 
-        if item_id >= 0x80: # if extended item, always big except from exception list
-            itemType = 0 if item_id in chestAnimationExtendedFast else 1
-        elif rom.read_byte(0xBEEE8E + (item_id * 6) + 2) & 0x80: # get animation from rom, ice trap is big
-            itemType = 0 # No animation, small chest
-        else:
-            itemType = 1 # Long animation, big chest
+        rom_item = read_rom_item(rom, item_id)
+        itemType = 0 if rom_item['fast_chest'] else 1
         # Don't use boss chests
 
         default = rom.read_int16(actor + 14)
@@ -1754,16 +1691,18 @@ def place_shop_items(rom, world, shop_items, messages, locations, init_shop_id=F
     shop_objs = { 0x0148 } # Sold Out
     messages
     for location in locations:
-        shop_objs.add(location.item.object)
         if location.item.type == 'Shop':
+            shop_objs.add(location.item.special['object'])
             rom.write_int16(location.address, location.item.index)
         else:
+            rom_item = read_rom_item(rom, location.item.index)
+            shop_objs.add(rom_item['object_id'])
             shop_id = place_shop_items.shop_id
             rom.write_int16(location.address, shop_id)
             shop_item = shop_items[shop_id]
 
-            shop_item.object = location.item.object
-            shop_item.model = location.item.model - 1
+            shop_item.object = rom_item['object_id']
+            shop_item.model = rom_item['graphic_id'] - 1
             shop_item.price = location.price
             shop_item.pieces = 1
             shop_item.get_item_id = location.default
@@ -1843,10 +1782,11 @@ def patch_cosmetics(settings, rom):
     if settings.default_targeting == 'hold':
         rom.write_byte(0xB71E6D, 0x01)
     else:
-        rom.write_byte(0xB71E6D, 0x00)       
+        rom.write_byte(0xB71E6D, 0x00)
 
     # patch music
     if settings.background_music == 'random':
+        restore_music(rom)
         randomize_music(rom)
     elif settings.background_music == 'off':
         disable_music(rom)
@@ -1906,18 +1846,37 @@ def patch_cosmetics(settings, rom):
             rom.write_bytes(address, color)
 
     # Configurable Sound Effects
-    sfx_addresses = [
-        (settings.navisfxoverworld, [0xAE7EF2, 0xC26C7E], NaviSFX), # Navi Overworld Hint (0x685F)
-        (settings.navisfxenemytarget, [0xAE7EC6], NaviSFX),         # Navi Enemy Target Hint (0x6843)
-        (settings.healthSFX, [0xADBA1A], HealthSFX)                 # Low Health Beep (0x481B)
-    ]
+    sfx_config = [
+          (settings.sfx_navi_overworld, sfx.SoundHooks.NAVI_OVERWORLD),
+          (settings.sfx_navi_enemy,     sfx.SoundHooks.NAVI_ENEMY),
+          (settings.sfx_low_hp,         sfx.SoundHooks.HP_LOW),
+          ]
+    sound_dict = sfx.get_patch_dict()
 
-    for thisSFX, addresses, SFX_table in sfx_addresses:
-        if thisSFX == 'Random Choice':
-            thisSFX = random.choice(list(SFX_table.keys()))
-        if thisSFX != 'Default':
-            for address in addresses:
-                rom.write_int16(address, SFX_table[thisSFX])
+    for selection, hook in sfx_config:
+        if selection != 'default':
+            if selection == 'random':
+                selection = random.choice(sfx.get_hook_pool(hook)).value.keyword
+            sound_id  = sound_dict[selection]
+            for loc in hook.value.locations:
+                rom.write_int16(loc, sound_id)
+
+    # Player Instrument
+    instruments = {
+           #'none':            0x00,
+            'ocarina':         0x01,
+            'malon':           0x02,
+            'whistle':         0x03,
+            'harp':            0x04,
+            'grind_organ':     0x05,
+            'flute':           0x06,
+           #'another_ocarina': 0x07,
+            }
+    if settings.sfx_ocarina is not 'random':
+        choice = settings.sfx_ocarina
+    else:
+        choice = random.choice(list(instruments.keys()))
+    rom.write_byte(0x00B53C7B, instruments[choice])
 
     return rom
 
@@ -2013,4 +1972,3 @@ def restore_music(rom):
     # restore file select instrument
     bgm_instrument = rom.original[0xB89910 + 0xDD + (0x57 * 2): 0xB89910 + 0xDD + (0x57 * 2) + 0x02]
     rom.write_bytes(0xB89910 + 0xDD + (0x57 * 2), bgm_instrument)
-

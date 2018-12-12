@@ -3,6 +3,8 @@ import logging
 from State import State
 from Rules import set_shop_rules
 from Location import DisableType
+from ItemPool import songlist, get_junk_item
+from Item import ItemFactory
 
 
 class FillError(RuntimeError):
@@ -33,6 +35,7 @@ def distribute_items_restrictive(window, worlds, fill_locations=None):
     shopitempool = [item for world in worlds for item in world.itempool if item.type == 'Shop']
     songitempool = [item for world in worlds for item in world.itempool if item.type == 'Song']
     itempool =     [item for world in worlds for item in world.itempool if item.type != 'Shop' and item.type != 'Song']
+    
     if worlds[0].shuffle_song_items:
         itempool.extend(songitempool)
         fill_locations.extend(song_locations)
@@ -81,6 +84,8 @@ def distribute_items_restrictive(window, worlds, fill_locations=None):
     # the song locations only.
     if not worlds[0].shuffle_song_items:
         fill_songs(window, worlds, song_locations, songitempool, progitempool)
+        if worlds[0].start_with_fast_travel:
+            fill_locations += [location for location in song_locations if location.item is None]
 
     # Put one item in every dungeon, needs to be done before other items are
     # placed to ensure there is a spot available for them
@@ -326,7 +331,7 @@ def fill_restrictive(window, worlds, base_state_list, locations, itempool, count
                 # in one world being placed late in another world. If this is not
                 # done then one player may be waiting a long time for other players.
                 if location.world.id != item_to_place.world.id:
-                    source_location = location.world.get_location(location.name)
+                    source_location = item_to_place.world.get_location(location.name)
                     if not source_location.can_fill(maximum_exploration_state_list[source_location.world.id], item_to_place, perform_access_check):
                         # location wasn't reachable in item's world, so skip it
                         continue
