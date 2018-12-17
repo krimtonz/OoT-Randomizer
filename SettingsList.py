@@ -1,7 +1,7 @@
 import argparse
 import re
 import math
-from Patches      import get_tunic_color_options, get_navi_color_options
+from Cosmetics import get_tunic_color_options, get_navi_color_options
 from LocationList import location_table
 import Sounds as sfx
 
@@ -418,6 +418,17 @@ setting_infos = [
             default        = True,
             shared         = True,
             ),
+    Checkbutton(
+        name='create_cosmetics_log',
+        args_help='''\
+                         Output a Cosmetics Log
+                         ''',
+        gui_text='Create Cosmetics Log',
+        gui_group='rom_tab',
+        gui_dependency=lambda guivar: guivar['compress_rom'].get() not in ['No Output', 'Patch File'],
+        default=True,
+        shared=False,
+    ),
     Setting_Widget(
         name='compress_rom',
         type=str,
@@ -770,14 +781,14 @@ setting_infos = [
     Checkbutton(
             name           = 'free_scarecrow',
             args_help      = '''\
-                             Scarecrow song is not needed to summon Pierre.
+                             Scarecrow's Song is no longer needed to summon Pierre.
                              ''',
-            gui_text       = 'Start with Scarecrow\'s Song',
+            gui_text       = 'Free Scarecrow\'s Song',
             gui_group      = 'convenience',
             gui_tooltip    = '''\
-                             Pulling out the Ocarina near
-                             Pierre will summon him without
-                             learning the song.
+                             Pulling out the Ocarina near a
+                             spot at which Pierre can spawn will
+                             do so, without needing the song.
                              ''',
             shared         = True,
             ),
@@ -789,9 +800,11 @@ setting_infos = [
             gui_text       = 'Start with Fast Travel',
             gui_group      = 'convenience',
             gui_tooltip    = '''\
-                             Start the game with knowledge of the Prelude of Light
-                             and Serenade of Water songs. Also start the game with
-                             Farore's Wind in inventory.
+                             Start the game with Prelude of Light,
+                             Serenade of Water, and Farore's Wind.
+                             
+                             Two song locations will give items,
+                             instead of Prelude and Serenade.
                              ''',
             shared         = True,
             ),            

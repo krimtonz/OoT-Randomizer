@@ -95,6 +95,22 @@
     nop
     nop
 
+; Override chest speed
+; Replaces:
+;   lb      t2, 0x0002 (t1)
+;   bltz    t2, @@after_chest_speed_check
+;   nop
+;   jal     0x80071420
+;   nop
+.org 0xBDA2E8 ; In memory: 0x803952D8
+    jal     override_chest_speed
+    lb      t2, 0x0002 (t1)
+    bltz    t3, @@after_chest_speed_check
+    nop
+    nop
+.skip 4 * 22
+@@after_chest_speed_check:
+
 ; Override text ID
 ; Replaces:
 ;   lbu     a1, 0x03 (v0)
@@ -180,6 +196,19 @@
     nop
 
 ;==================================================================================================
+; Scene init hook
+;==================================================================================================
+
+; Runs after scene init
+; Replaces:
+;   jr      ra
+;   nop
+.org 0xB12E44 ; In memory: 0x8009CEE4
+    j       after_scene_init
+    nop
+
+
+;==================================================================================================
 ; Freestanding models
 ;==================================================================================================
 
@@ -187,9 +216,12 @@
 ;   jal     0x80013498 ; Piece of Heart draw function
 ;   nop
 .org 0xA88F78
-    ; disabled until model code is done
-    ;jal     models_draw
-    ;nop
+    jal     models_draw
+    nop
+
+; Override constructor for En_Item00 (Piece of Heart / Small Key)
+.org 0xB5D6C0
+.word item00_constructor ; Replaces 80011B4C
 
 ;==================================================================================================
 ; File select hash
@@ -674,9 +706,9 @@ skip_GS_BGS_text:
 ; Replaces:
 ;   lhu     t0, 0x04C6 (t0)
 ;   li      at, 0x0B
-.org 0xEF4f98
-    lhu     t0, 0x0670 (v0)
-    li      at, 0x0800
+.org 0xEF4F98
+    jal adapt_scarecrow
+    nop
 
 ;==================================================================================================
 ; Talon Cutscene Skip
@@ -874,3 +906,13 @@ skip_GS_BGS_text:
 ;Replaces: addiu t5, r0, 0x0200
 .org 0xD4BE6C
 	jal		jabu_elevator
+
+;==================================================================================================
+; Quick Boots Display
+;==================================================================================================
+;
+; Replaces lw    s4, 0x0000(s6)
+;          lw    s1, 0x02B0(s4)
+.org 0xAEB68C ; In Memory: 0x8007572C
+	jal		qb_draw
+	nop
