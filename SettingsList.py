@@ -43,6 +43,8 @@ class Setting_Widget(Setting_Info):
         if 'type' not in args_params: args_params['type'] = type
         if 'type' not in gui_params:  gui_params['type']  = type
 
+        self.choices = choices
+        self.default = default
         args_params['choices'] = list(choices.keys())
         args_params['default'] = default
         gui_params['options']  = {v: k for k, v in choices.items()}
@@ -1300,7 +1302,7 @@ setting_infos = [
         {
             'text': 'Exclude Locations',
             'widget': 'SearchBox',
-            'group': 'checks',
+            'group': 'logic_tab',
             'options': list(location_table.keys()),
             'tooltip':'''
                     Prevent locations from being required. Major 
@@ -1323,7 +1325,7 @@ setting_infos = [
         {
             'text': 'Enable Tricks',
             'widget': 'SearchBox',
-            'group': 'tricks',
+            'group': 'logic_tab',
             'options': {gui_text: val['name'] for gui_text, val in logic_tricks.items()},
             'entry_tooltip': logic_tricks_entry_tooltip,
             'list_tooltip': logic_tricks_list_tooltip,
@@ -1356,7 +1358,6 @@ setting_infos = [
                              'eyedrops'
                              'claim_check'
                              ''',
-            gui_text       = 'Adult Trade Sequence',
             gui_group      = 'checks',
             gui_tooltip    = '''\
                              Select the earliest item that can appear in the adult trade sequence.
@@ -1411,7 +1412,6 @@ setting_infos = [
                              chest-wasteland:  Only wasteland and chest minigame expect the lens
                              chest:            Only the chest minigame expects the lens
                              ''',
-            gui_text       = 'Lens of Truth',
             gui_group      = 'tricks',
             gui_tooltip    = '''\
                              'Required everywhere': every invisible or
@@ -1451,7 +1451,8 @@ setting_infos = [
             gui_group      = 'other',
             gui_tooltip    = '''\
                              Chests will be large if they contain a major
-                             item and small if they don't. This allows skipping
+                             item and small if they don't. Boss keys will
+                             be in gold chests. This allows skipping
                              chests if they are small. However, skipping
                              small chests will mean having low health,
                              ammo, and rupees, so doing so is a risk.
@@ -1469,6 +1470,27 @@ setting_infos = [
             gui_tooltip    = '''\
                              The hints provided by Gossip Stones will
                              be very direct if this option is enabled.
+                             ''',
+            shared         = True,
+            ),
+     Combobox(
+            name           = 'junk_ice_traps',
+            default        = 'off',
+            choices        = {
+                'off':     'No Ice Traps as Junk',
+                'on':      'Junk Ice Traps',
+                'mayhem':  'Mayhem: All Junk Items are Ice Traps',
+                },
+            args_help      = '''\
+                             Choose how Ice Traps will be placed in the junk item pool
+                             off:    Default behavior; no ice traps in the junk item pool
+                             on:     Ice Traps will be placed in the junk item pool
+                             mayhem: All junk items will be ice traps
+                             ''',
+            gui_text       = 'Junk Ice Traps',
+            gui_group      = 'other',
+            gui_tooltip    = '''\
+                             Ice Traps can be made to be placed into the junk item pool.
                              ''',
             shared         = True,
             ),
@@ -1515,6 +1537,7 @@ setting_infos = [
                 'balanced':    'Balanced',
                 'strong':      'Strong',
                 'very_strong': 'Very Strong',
+                'tournament':  'Tournament',
                 },
             args_help      = '''\
                              Choose how Gossip Stones hints are distributed
@@ -1522,6 +1545,7 @@ setting_infos = [
                              balanced: Use a balanced distribution of hint types
                              strong: Use a strong distribution of hint types
                              very_strong: Use a very strong distribution of hint types
+                             tournament: Similar to strong but has no variation in hint types
                              ''',
             gui_text       = 'Hint Distribution',
             gui_group      = 'other',
@@ -1533,6 +1557,9 @@ setting_infos = [
                              hints.
                              Very Strong distribution has
                              only very useful hints.
+                             Tournament distribution is
+                             similar to Strong but with no
+                             variation in hint types.
                              ''',
             shared         = True,
             ),
@@ -1623,6 +1650,43 @@ setting_infos = [
                              Changes the amount of damage taken.
         
                              'OHKO': Link dies in one hit.
+                             ''',
+            shared         = True,
+            ),
+    Combobox(
+            name           = 'starting_tod',
+            default        = 'default',
+            choices        = {
+                'default':       'Default',
+                'random':        'Random Choice',
+                'early-morning': 'Early Morning',
+                'morning':       'Morning',
+                'noon':          'Noon',
+                'afternoon':     'Afternoon',
+                'evening':       'Evening',
+                'dusk':          'Dusk',
+                'midnight':      'Midnight',
+                'witching-hour': 'Witching Hour',
+                },
+            args_help      = '''\
+                             Change up Link's sleep routine.
+
+                             Daytime officially starts at 6:30,
+                             nighttime at 18:00 (6:00 PM).
+
+                             Default is 10:00 in the morning.
+                             The alternatives are multiples of 3 hours.
+                             ''',
+            gui_text       = 'Starting Time of Day',
+            gui_group      = 'other',
+            gui_tooltip    = '''\
+                             Change up Link's sleep routine.
+
+                             Daytime officially starts at 6:30,
+                             nighttime at 18:00 (6:00 PM).
+
+                             Default is 10:00 in the morning.
+                             The alternatives are multiples of 3 hours.
                              ''',
             shared         = True,
             ),
@@ -1928,3 +1992,7 @@ setting_infos = [
                              ''',
             ),
 ]
+
+si_dict = {si.name: si for si in setting_infos}
+def get_setting_info(name):
+    return si_dict[name]
