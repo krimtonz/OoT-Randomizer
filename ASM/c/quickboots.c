@@ -73,7 +73,7 @@ void handle_quickboots() {
             }
         }
     }
-    if (pad_pressed & DPAD_D) {
+    if (pad_pressed & DPAD_D && DISPLAY_QUICKBOOTS) {
         display_active = !display_active;
         uint16_t sfx = 0x4814;
         if (display_active) sfx = 0x4813;

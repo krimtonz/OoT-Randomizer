@@ -69,12 +69,11 @@ def main(settings, window=dummy_window()):
         else:
             settings.player_num = 1
 
+    settings.update()
+    logger.info('OoT Randomizer Version %s  -  Seed: %s\n\n', __version__, settings.seed)
+    random.seed(settings.numeric_seed)
     for i in range(0, settings.world_count):
         worlds.append(World(settings))
-
-    random.seed(worlds[0].numeric_seed)
-
-    logger.info('OoT Randomizer Version %s  -  Seed: %s\n\n', __version__, worlds[0].seed)
 
     window.update_status('Creating the Worlds')
     for id, world in enumerate(worlds):
@@ -129,7 +128,7 @@ def main(settings, window=dummy_window()):
         window.update_status('Calculating Hint Data')
         State.update_required_items(spoiler)
         for world in worlds:
-            world.update_useless_areas()
+            world.update_useless_areas(spoiler)
             buildGossipHints(spoiler, world)
         window.update_progress(55)
     spoiler.build_file_hash()
