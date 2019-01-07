@@ -35,20 +35,21 @@ void handle_dpad() {
 
     uint16_t pad_pressed = z64_game.common.input[0].pad_pressed;
 
-    if (CAN_USE_DPAD){
-        if (pad_pressed & DPAD_U) {
-            z64_game.link_age = !z64_game.link_age;
+    if (pad_pressed & DPAD_U) {
+        z64_game.link_age = !z64_game.link_age;
 
-            uint16_t entrance = z64_file.entrance_index;
-            for (int i = 0; i < sizeof(age_swap_table) / sizeof(age_swap_table_t); i++) {
-                if (z64_game.link_age == age_swap_table[i].age && age_swap_table[i].search == entrance) {
-                    entrance = age_swap_table[i].repl;
-                    break;
-                }
+        uint16_t entrance = z64_file.entrance_index;
+        for (int i = 0; i < sizeof(age_swap_table) / sizeof(age_swap_table_t); i++) {
+            if (z64_game.link_age == age_swap_table[i].age && age_swap_table[i].search == entrance) {
+                entrance = age_swap_table[i].repl;
+                break;
             }
-            z64_game.entrance_index = entrance;
-            z64_game.scene_load_flag = 0x14;
         }
+        z64_game.entrance_index = entrance;
+        z64_game.scene_load_flag = 0x14;
+    }
+
+    if (CAN_USE_DPAD){
         if(z64_file.link_age == 0) {
             if (pad_pressed & DPAD_L && z64_file.iron_boots) {
                 if (z64_file.equip_boots == 2) z64_file.equip_boots = 1;
