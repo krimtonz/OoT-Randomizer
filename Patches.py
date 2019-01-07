@@ -31,6 +31,13 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     # Force language to be English in the event a Japanese rom was submitted
     rom.write_byte(0x3E, 0x45)
 
+    # Display DPAD HUD
+    dpad_sym = rom.sym('display_dpad')
+    if world.display_dpad:
+        rom.write_byte(dpad_sym, 0x01)
+    else:
+        rom.write_byte(dpad_sym,0x00)
+
     # Increase the instance size of Bombchus prevent the heap from becoming corrupt when
     # a Dodongo eats a Bombchu. Does not fix stale pointer issues with the animation
     rom.write_int32(0xD6002C, 0x1F0)
@@ -484,6 +491,15 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     # Ruto never disappears from Jabu Jabu's Belly
     rom.write_byte(0xD01EA3, 0x00)
 
+    #Shift octorock in jabu forward
+    rom.write_bytes(0x275906E, [0xFF, 0xB3, 0xFB, 0x20, 0xF9, 0x56])
+
+    #Move fire/forest temple switches down 1 unit to make it easier to press
+    rom.write_bytes(0x24860A8, [0xFC, 0xF4]) #forest basement 1
+    rom.write_bytes(0x24860C8, [0xFC, 0xF4]) #forest basement 2
+    rom.write_bytes(0x24860E8, [0xFC, 0xF4]) #forest basement 3
+    rom.write_bytes(0x236C148, [0x11, 0x93]) #fire hammer room
+
     # Speed up Epona race start
     rom.write_bytes(0x29BE984, [0x00, 0x00, 0x00, 0x02])
     rom.write_bytes(0x29BE9CA, [0x00, 0x01, 0x00, 0x02])
@@ -684,6 +700,7 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     # will overwrite the byte at offset with the given value
     def write_save_table(rom):
         nonlocal initial_save_table
+        initial_save_table += [0x00,0x00,0x00,0x00]
 
         table_len = len(initial_save_table)
         if table_len > 0x400:
@@ -763,6 +780,9 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     # Make the Kakariko Gate not open with the MS
     if not world.open_kakariko:
         rom.write_int32(0xDD3538, 0x34190000) # li t9, 0
+
+    if world.open_fountain:
+        write_bits_to_save(0x0EDB, 0x08) #Move king zora
 
     # Make all chest opening animations fast
     rom.write_byte(rom.sym('FAST_CHESTS'), int(world.fast_chests))
@@ -1612,7 +1632,7 @@ def create_fake_name(name):
     # keeping the game E...
     new_name = ''.join(list_name)
     censor = ['dike', 'cunt', 'cum', 'puss', 'shit', 'penis']
-    new_name_az = re.sub(r'[^a-zA-Z]', '', name.lower(), re.UNICODE)
+    new_name_az = re.sub(r'[^a-zA-Z]', '', new_name.lower(), re.UNICODE)
     for cuss in censor:
         if cuss in new_name_az:
             return create_fake_name(name)
@@ -1637,8 +1657,8 @@ def place_shop_items(rom, world, shop_items, messages, locations, init_shop_id=F
 
             # bottles in shops should look like empty bottles
             # so that that are different than normal shop refils
-            if 'Bottle' in item_display:
-                rom_item = read_rom_item(rom, 0x0F)
+            if 'shop_object' in item_display.special:
+                rom_item = read_rom_item(rom, item_display.special['shop_object'])
             else:
                 rom_item = read_rom_item(rom, item_display.index)
 

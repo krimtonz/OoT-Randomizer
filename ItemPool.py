@@ -36,7 +36,6 @@ alwaysitems = ([
     + ['Bow'] * 3
     + ['Slingshot'] * 3
     + ['Bomb Bag'] * 3
-    + ['Bottle with Letter']
     + ['Bombs (5)'] * 2
     + ['Bombs (10)']
     + ['Bombs (20)']
@@ -547,6 +546,12 @@ def get_pool_core(world):
     else:
         placed_items['Kokiri Sword Chest'] = 'Kokiri Sword'
 
+    if world.open_fountain:
+        bottle = random.choice(normal_bottles)
+        pool.append(bottle)
+    else:
+        pool.append('Bottle with Letter')
+
     if world.shuffle_weird_egg:
         pool.append('Weird Egg')
     else:
@@ -770,7 +775,7 @@ def get_pool_core(world):
         pool.extend(normal_rupees)
 
     else:
-        remain_shop_items = [item for _,item in vanilla_shop_items.items()]
+        remain_shop_items = list(vanilla_shop_items.values())
         pool.extend(min_shop_items)
         for item in min_shop_items:
             remain_shop_items.remove(item)
@@ -832,10 +837,6 @@ def get_pool_core(world):
         placed_items.update(vanilla_deku_scrubs)
 
     pool.extend(alwaysitems)
-    if world.start_with_fast_travel:
-        pool.remove('Farores Wind')
-        world.state.collect(ItemFactory('Farores Wind'))
-        pool.extend(get_junk_item())
     
     if world.dungeon_mq['Deku Tree']:
         pool.extend(DT_MQ)
@@ -880,7 +881,6 @@ def get_pool_core(world):
         bottle = random.choice(normal_bottles)
         pool.append(bottle)
 
-    tradeitem = random.choice(tradeitems)
     earliest_trade = tradeitemoptions.index(world.logic_earliest_adult_trade)
     latest_trade = tradeitemoptions.index(world.logic_latest_adult_trade)
     if earliest_trade > latest_trade:
@@ -891,11 +891,12 @@ def get_pool_core(world):
     pool.extend(songlist)
     if world.start_with_fast_travel:
         pool.remove('Prelude of Light')
-        world.state.collect(ItemFactory('Prelude of Light'))
-        pool.extend(get_junk_item())
         pool.remove('Serenade of Water')
+        pool.remove('Farores Wind')
+        world.state.collect(ItemFactory('Prelude of Light'))
         world.state.collect(ItemFactory('Serenade of Water'))
-        pool.extend(get_junk_item())
+        world.state.collect(ItemFactory('Farores Wind'))
+        pool.extend(get_junk_item(3))
 
     if world.shuffle_mapcompass == 'remove' or world.shuffle_mapcompass == 'startwith':
         for item in [item for dungeon in world.dungeons for item in dungeon.dungeon_items]:
@@ -915,11 +916,12 @@ def get_pool_core(world):
         world.state.collect(ItemFactory('Small Key (Water Temple)'))
 
     if world.item_pool_value == 'plentiful':
-        if not world.shuffle_kokiri_sword:
-            replace_max_item(easy_items, 'Kokiri Sword', 0)
         pool.extend(easy_items)
     else:
         pool.extend(normal_items)
+
+    if not world.shuffle_kokiri_sword:
+        replace_max_item(pool, 'Kokiri Sword', 0)
 
     if world.junk_ice_traps == 'off': 
         replace_max_item(pool, 'Ice Trap', 0)

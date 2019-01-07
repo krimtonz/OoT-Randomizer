@@ -370,6 +370,14 @@
 .org 0x89E800
 .fill 0x400, 0
 
+; Don't display hover boots in the bullet bag/quiver slot if you haven't gotten a slingshot before becoming adult
+; Replaces:
+;   lbu     t4, 0x0000 (t7)
+;   and     t6, v1, t5
+.org 0xBB6CF0
+    jal     equipment_menu_fix
+    nop
+
 ; Use a blank item description texture if the cursor is on an empty slot
 ; Replaces:
 ;   sll     t4, v1, 10
@@ -394,7 +402,7 @@
 ; Replaces:
 ;   beqz    t3, 0x8038D9FC
 ;   nop
-.org 0xBB5FD4 ; In memory: 0x8038D95C
+.org 0xBB5FDC ; In memory: 0x8038D95C
 nop
 nop
 
@@ -770,11 +778,12 @@ skip_GS_BGS_text:
 ; Talon Cutscene Skip
 ;==================================================================================================
 
-; Replaces: lui    a1, 0x801F @ovl+0x1080
+; Replaces: lw      a0, 0x0018(sp)
+            addiu   t1, r0, 0x0041
 
-.org 0xCC0020
-    jal     talon_break_free
-    lui     a1, 0x801F
+.org 0xCC0038
+    jal    talon_break_free
+    lw     a0, 0x0018(sp)
 
 ;==================================================================================================
 ; Patches.py imports
@@ -964,13 +973,13 @@ skip_GS_BGS_text:
 	jal		jabu_elevator
 
 ;==================================================================================================
-; Quick Boots Display
+; DPAD Display
 ;==================================================================================================
 ;
-; Replaces lw    s4, 0x0000(s6)
-;          lw    s1, 0x02B0(s4)
-.org 0xAEB68C ; In Memory: 0x8007572C
-	jal		qb_draw
+; Replaces lw    t6, 0x1C44(s6)
+;          lui   t8, 0xDB06
+.org 0xAEB67C ; In Memory: 0x8007571C
+	jal		dpad_draw
 	nop
 
 ;==================================================================================================
@@ -1019,3 +1028,11 @@ skip_GS_BGS_text:
 .org 0xED645C
     jal     bgs_fix
     nop
+
+;==================================================================================================
+; Warp song speedup
+;==================================================================================================
+;
+.org 0xBEA044
+   jal      warp_speedup
+   nop
