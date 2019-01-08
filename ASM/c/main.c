@@ -8,7 +8,7 @@
 #include "dpad.h"
 #include "z64.h"
 #include "chests.h"
-
+#include "rainbow.h"
 void c_init() {
     heap_init();
     gfx_init();
@@ -20,6 +20,7 @@ void c_init() {
 void before_game_state_update() {
     handle_pending_items();
     handle_dpad();
+    do_rainbow();
 }
 
 void after_game_state_update() {
