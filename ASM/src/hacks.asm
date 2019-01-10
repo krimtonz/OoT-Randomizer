@@ -1036,3 +1036,8 @@ skip_GS_BGS_text:
 .org 0xBEA044
    jal      warp_speedup
    nop
+
+.org 0xAF7F94
+    j       save_lighting_settings
+    nop
+    

@@ -50,6 +50,7 @@
 .include "jabu_elevator.asm"
 .include "dpad.asm"
 .include "chests.asm"
+.include "rainbow.asm"
 .include "debug.asm"
 .importobj "../build/bundle.o"
 .align 8
