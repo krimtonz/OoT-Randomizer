@@ -1935,6 +1935,78 @@ setting_infos = [
                       color from any color the N64 can draw.
                       '''
         }),
+    Checkbutton(
+            name           = 'enable_rainbow_sword',
+            args_help      = '''\
+                             Cool rainbow Sword
+                             ''',
+            gui_text       = 'Use Rainbow Sword',
+            gui_group      = 'colors',
+            gui_tooltip    = '''\
+                             Make the sword trail from sword slashes a rainbow 
+                             ''',
+            default        = False,
+            ),
+    Checkbutton(
+            name           = 'enable_rainbow_navi',
+            args_help      = '''\
+                             Navi is a rainbow
+                             ''',
+            gui_text       = 'Use Rainbow Navi',
+            gui_group      = 'colors',
+            gui_tooltip    = '''\
+                             Makes navi a rainbow color the changes every frame
+                             ''',
+            default        = False,
+            ),
+    Checkbutton(
+            name           = 'enable_rainbow_kokiri_tunic',
+            args_help      = '''\
+                             Makes the Kokiri Tunic a Rainbow
+                             ''',
+            gui_text       = 'Use Rainbow Kokiri Tunic',
+            gui_group      = 'colors',
+            gui_tooltip    = '''\
+                             Makes the Kokiri Tunic a Rainbow
+                             ''',
+            default        = False,
+            ),
+    Checkbutton(
+            name           = 'enable_rainbow_goron_tunic',
+            args_help      = '''\
+                             Makes the Goron Tunic a Rainbow
+                             ''',
+            gui_text       = 'Use Rainbow Goron Tunic',
+            gui_group      = 'colors',
+            gui_tooltip    = '''\
+                             Makes the Goron Tunic a Rainbow
+                             ''',
+            default        = False,
+            ),
+    Checkbutton(
+            name           = 'enable_rainbow_zora_tunic',
+            args_help      = '''\
+                             Makes the Zora Tunic a Rainbow
+                             ''',
+            gui_text       = 'Use Rainbow Zora Tunic',
+            gui_group      = 'colors',
+            gui_tooltip    = '''\
+                             Makes the Zora Tunic a Rainbow
+                             ''',
+            default        = False,
+            ),
+    Checkbutton(
+            name           = 'enable_rainbow_fog',
+            args_help      = '''\
+                             Makes Fog and Ambient Lighting Rainbows
+                             ''',
+            gui_text       = 'Use Rainbow Fog and Ambient Lighting',
+            gui_group      = 'colors',
+            gui_tooltip    = '''\
+                             Makes basically everything a rainbow
+                             ''',
+            default        = False,
+            ),
     Combobox(
             name           = 'sfx_nightfall',
             default        = 'default',

@@ -26,12 +26,12 @@ static colorRGB_t colors[] =
 
 // Config Variables
 uint8_t rainbow_cycle_frames = 0x10;
-uint8_t enable_rainbow_navi = 0x01;
-uint8_t enable_rainbow_sword = 0x01;
-uint8_t enable_rainbow_kokiri_tunic = 0x01;
-uint8_t enable_rainbow_goron_tunic = 0x01;
-uint8_t enable_rainbow_zora_tunic = 0x01;
-
+uint8_t enable_rainbow_navi = 0x00;
+uint8_t enable_rainbow_sword = 0x00;
+uint8_t enable_rainbow_kokiri_tunic = 0x00;
+uint8_t enable_rainbow_goron_tunic = 0x00;
+uint8_t enable_rainbow_zora_tunic = 0x00;
+uint8_t enable_rainbow_fog = 0x00;
 
 
 colorRGB_t get_color(int index, int f)
@@ -69,13 +69,15 @@ void do_rainbow()
 
     colorRGB_t color = get_color(index, f);
 
-    for(int i=0;i<num_lighting;i++){
-        scene_lighting[(i*0x16) + 0] = color.r;
-        scene_lighting[(i * 0x16) + 1] = color.g;
-        scene_lighting[(i * 0x16) + 2] = color.b;
-        scene_lighting[(i * 0x16) + 15] = color.r;
-        scene_lighting[(i * 0x16) + 16] = color.g;
-        scene_lighting[(i * 0x16) + 17] = color.b;
+    if(enable_rainbow_fog){
+        for(int i=0;i<num_lighting;i++){
+            scene_lighting[(i*0x16) + 0] = color.r;
+            scene_lighting[(i * 0x16) + 1] = color.g;
+            scene_lighting[(i * 0x16) + 2] = color.b;
+            scene_lighting[(i * 0x16) + 15] = color.r;
+            scene_lighting[(i * 0x16) + 16] = color.g;
+            scene_lighting[(i * 0x16) + 17] = color.b;
+        }
     }
 
     if (enable_rainbow_sword) {

@@ -38,6 +38,42 @@ def patch_rom(spoiler:Spoiler, world:World, rom:LocalRom):
     else:
         rom.write_byte(dpad_sym,0x00)
 
+    rainbow_navi = rom.sym('enable_rainbow_navi')
+    if world.enable_rainbow_navi:
+        rom.write_byte(rainbow_navi, 0x01)
+    else:
+        rom.write_byte(rainbow_navi,0x00)
+
+    rainbow_sword = rom.sym('enable_rainbow_sword')
+    if world.enable_rainbow_sword:
+        rom.write_byte(rainbow_sword, 0x01)
+    else:
+        rom.write_byte(rainbow_sword,0x00)
+
+    rainbow_kokiri_tunic = rom.sym('enable_rainbow_kokiri_tunic')
+    if world.enable_rainbow_kokiri_tunic:
+        rom.write_byte(rainbow_kokiri_tunic, 0x01)
+    else:
+        rom.write_byte(rainbow_kokiri_tunic,0x00)
+
+    rainbow_goron_tunic = rom.sym('enable_rainbow_goron_tunic')
+    if world.enable_rainbow_goron_tunic:
+        rom.write_byte(rainbow_goron_tunic, 0x01)
+    else:
+        rom.write_byte(rainbow_goron_tunic,0x00)
+
+    rainbow_zora_tunic = rom.sym('enable_rainbow_zora_tunic')
+    if world.enable_rainbow_zora_tunic:
+        rom.write_byte(rainbow_zora_tunic, 0x01)
+    else:
+        rom.write_byte(rainbow_zora_tunic,0x00)
+
+    rainbow_fog = rom.sym('enable_rainbow_fog')
+    if world.enable_rainbow_fog:
+        rom.write_byte(rainbow_fog, 0x01)
+    else:
+        rom.write_byte(rainbow_fog,0x00)
+
     # Increase the instance size of Bombchus prevent the heap from becoming corrupt when
     # a Dodongo eats a Bombchu. Does not fix stale pointer issues with the animation
     rom.write_int32(0xD6002C, 0x1F0)
