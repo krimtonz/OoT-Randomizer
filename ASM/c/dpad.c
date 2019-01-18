@@ -49,7 +49,7 @@ void handle_dpad() {
         z64_game.scene_load_flag = 0x14;
     }
 
-    if (CAN_USE_DPAD){
+    if (CAN_USE_DPAD && DISPLAY_DPAD){
         if(z64_file.link_age == 0) {
             if (pad_pressed & DPAD_L && z64_file.iron_boots) {
                 if (z64_file.equip_boots == 2) z64_file.equip_boots = 1;
@@ -77,11 +77,14 @@ void draw_dpad() {
         gDPPipeSync(db->p++);
         gDPSetCombineMode(db->p++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
         uint16_t alpha = z64_game.hud_alpha_channels.minimap;
+        
         if (alpha == 0xAA) alpha = 0xFF;
         gDPSetPrimColor(db->p++, 0, 0, 0xFF, 0xFF, 0xFF, alpha);
-
         sprite_load(db, &dpad_sprite, 0, 1);
         sprite_draw(db, &dpad_sprite, 0, 271, 64, 16, 16);
+
+        if (alpha == 0xFF && !CAN_USE_DPAD)
+            gDPSetPrimColor(db->p++, 0, 0, 0xFF, 0xFF, 0xFF, 0x46);
 
         if (z64_file.iron_boots && z64_file.link_age==0) {
             sprite_load(db, &items_sprite, 69, 1);
@@ -103,6 +106,7 @@ void draw_dpad() {
             }
         }
         if (z64_file.items[0x07] != -1){
+            if(alpha==0xFF && !CAN_USE_OCARINA) gDPSetPrimColor(db->p++, 0, 0, 0xFF, 0xFF, 0xFF, 0x46);
             sprite_load(db, &items_sprite, z64_file.items[0x07], 1);
             sprite_draw(db, &items_sprite, 0, 273, 77, 12,12);
         }
