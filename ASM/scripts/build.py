@@ -29,6 +29,13 @@ os.chdir(run_dir + '/src')
 call(['armips', '-sym2', '../build/asm_symbols.txt', 'build.asm'])
 os.chdir(run_dir)
 
+with open('build/asm_symbols.txt', 'rb') as f:
+    asm_symbols_content = f.read()
+asm_symbols_content = asm_symbols_content.replace(b'\r\n', b'\n')
+asm_symbols_content = asm_symbols_content.replace(b'\x1A', b'')
+with open('build/asm_symbols.txt', 'wb') as f:
+    f.write(asm_symbols_content)
+
 # Parse symbols
 
 c_sym_types = {}
@@ -78,14 +85,12 @@ data_symbols = {}
 for (name, sym) in symbols.items():
     if sym['type'] == 'data':
         addr = int(sym['address'], 16)
-        if 0x80400000 <= addr < 0x80405000:
+        if 0x80400000 <= addr < 0x80410000:
             addr = addr - 0x80400000 + 0x03480000
-        elif 0x80405000 <= addr < 0x80410000:
-            addr = addr - 0x80405000 + 0x034B3000
         else:
             continue
         data_symbols[name] = '{0:08X}'.format(addr)
-with open('../data/symbols.json', 'w') as f:
+with open('../data/generated/symbols.json', 'w') as f:
     json.dump(data_symbols, f, indent=4, sort_keys=True)
 
 if pj64_sym_path:
@@ -96,4 +101,4 @@ if pj64_sym_path:
             f.write('{0},{1},{2}\n'.format(sym['address'], sym['type'], sym_name))
 
 # Diff ROMs
-create_diff('roms/base.z64', 'roms/patched.z64', '../data/rom_patch.txt')
+create_diff('roms/base.z64', 'roms/patched.z64', '../data/generated/rom_patch.txt')
