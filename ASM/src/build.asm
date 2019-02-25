@@ -53,6 +53,7 @@
 .include "dampe.asm"
 .include "dpad.asm"
 .include "chests.asm"
+.include "adult_trade_quest.asm"
 .include "debug.asm"
 .importobj "../build/bundle.o"
 .align 8

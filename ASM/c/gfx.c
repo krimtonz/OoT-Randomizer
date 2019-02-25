@@ -58,6 +58,11 @@ sprite_t dpad_sprite = {
     G_IM_FMT_IA, G_IM_SIZ_16b, 2
 };  
 
+sprite_t items_sprite_gray = { 
+    NULL, 32, 32, 90,
+    G_IM_FMT_RGBA, G_IM_SIZ_32b, 4
+};
+
 int sprite_bytes_per_tile(sprite_t *sprite) {
     return sprite->tile_w * sprite->tile_h * sprite->bytes_per_texel;
 }
@@ -95,6 +100,33 @@ void sprite_draw(z64_disp_buf_t *db, sprite_t *sprite, int tile_index,
             width_factor, height_factor);
 }
 
+typedef float MtxF_t[4][4];
+
+typedef union{
+    MtxF_t mf;
+    float f[16];
+    struct{
+        float xx, xy, xz, xw,
+              yx, yy, yz, yw,
+              zx, zy, zz, zw,
+              wx, wy, wz, ww;
+    };
+} MtxF;
+
+#define guDefMtxF(xx,xy,xz,xw, \
+                  yx,yy,yz,yw, \
+                  zx,zy,zz,zw, \
+                  wx,wy,wz,ww)  {.f={ \
+                      xx,xy,xz,xw, \
+                      yx,yy,yz,yw, \
+                      zx,zy,zz,zw, \
+                      wx,wy,wz,ww}}
+
+const MtxF desaturate = guDefMtxF(0.3086f, 0.6094f, 0.0820f, 0.f,
+                                         0.3086f, 0.6094f, 0.0820f, 0.f,
+                                         0.3086f, 0.6094f, 0.0820f, 0.f,
+                                         0.f,     0.f,     0.f,     1.f);
+
 void gfx_init() {
     file_t title_static = {
         NULL, z64_file_select_static_vaddr, z64_file_select_static_vsize
@@ -111,10 +143,39 @@ void gfx_init() {
     };
     file_init(&icon_item_static);
 
+    file_t icon_item_static_gray = {
+        NULL, z64_icon_item_static_vaddr, z64_icon_item_static_vsize
+    };
+    file_init(&icon_item_static_gray);
+
+    struct rgba{
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+        uint8_t a;
+    };
+    MtxF m = desaturate;
+    for(int i=0;i<sprite_bytes(&items_sprite_gray)/4;++i){
+        struct rgba p = ((struct rgba*)icon_item_static_gray.buf)[i];
+        float r = p.r * m.xx + p.g * m.xy + p.b*m.xz + p.a * m.xw;
+        float g = p.r * m.yx + p.g * m.yy + p.b*m.yz + p.a * m.yw;
+        float b = p.r * m.zx + p.g * m.zy + p.b*m.zz + p.a * m.zw;
+        float a = p.r * m.wx + p.g * m.wy + p.b*m.wz + p.a * m.ww;
+        struct rgba n = {
+            r = r<0x00?0x00:r>0xFF?0xFF:r,
+            g = g<0x00?0x00:g>0xFF?0xFF:g,
+            b = b<0x00?0x00:b>0xFF?0xFF:b,
+            a = a<0x00?0x00:a>0xFF?0xFF:a,
+        };
+        ((struct rgba*)icon_item_static_gray.buf)[i] = n;
+    }
+
     stones_sprite.buf = title_static.buf + 0x2A300;
     medals_sprite.buf = title_static.buf + 0x2980;
     items_sprite.buf = icon_item_static.buf;
     quest_items_sprite.buf = icon_item_24_static.buf;
+    items_sprite_gray.buf = icon_item_static_gray.buf;
+
     dpad_sprite.buf = dpad_texture_raw;
 
     int font_bytes = sprite_bytes(&font_sprite);

@@ -1057,3 +1057,12 @@ skip_GS_BGS_text:
 ; Replaces: bnezl t7, 0xAD1988 ; 0x8005BA28
 .orga 0xAD193C ; 0x8005B9DC
     b . + 0x4C
+
+;==================================================================================================
+; Show Adult Trade Quest Items instead of Name
+;==================================================================================================
+; Replaces: lui t9, 0xE700 ; RAM: 80397470
+;           lui t8, 0xFC30
+.orga 0xBBFAF0
+    jal menu_fix_tradequest
+    lui t9, 0xE700
