@@ -54,8 +54,9 @@
 .include "dpad.asm"
 .include "chests.asm"
 .include "bunny_hood.asm"
-.include "debug.asm"
 .include "cow.asm"
+.include "timers.asm"
+.include "debug.asm"
 .importobj "../build/bundle.o"
 .align 8
 FONT_TEXTURE:
