@@ -12,3 +12,4 @@ C_MEM   equ 0x80500000
 .definelabel DEBUG_BUFFER, ASM_MEM + 0 ; Size 0x1000
 
 .definelabel C_HEAP, C_MEM + 0
+.definelabel RANDO_SAVE_CTX, ASM_MEM + 0x1000

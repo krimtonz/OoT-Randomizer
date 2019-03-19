@@ -1213,3 +1213,71 @@ skip_GS_BGS_text:
 ; ==================================================================================================
 .orga 0xAC7AD4
     jal     Static_ctxt_Init
+
+; ==================================================================================================
+; Only have 1 save file
+; ==================================================================================================
+.orga 0xBAA198; memory 803adf98
+    jal file_choose
+    ori a0, r0, 0x04
+
+.orga 0xBAA164; memory 803adf64
+    addiu   t5,t5, 0xFFFF
+    jal     file_choose
+    ori     a0, r0, 0x00
+
+.orga 0xBAA178
+    bgez    t6, @@_BAA1B4
+   .skip 0x38
+@@_BAA1B4:
+
+; Erase menu Down
+.orga 0xBA3300 ; memory 803a7100
+    jal erase_input
+    ori a0, r0, 0x03
+
+; Erase menu up
+.orga 0xBA32C8 ; memory 803a70c8
+    addiu t3, t8, 0xFFFF
+    jal erase_input
+    ori a0, r0, 0x00
+
+; Remove Copy button.
+.orga 0xBAD150 ; memory 803b0f50
+    nop
+
+.orga 0xBAD20C ; memory 803b100c
+    ori t5, r0, 0x0004
+
+.orga 0xBAD248 ; memory 803b1048
+    ori t4, r0, 0x0001
+
+; only verify 1st file
+; Replaces slti at, s4, 0x0003
+.orga 0xB068D4 ; memory 80090974
+    slti    at, s4, 0x0001
+
+; ==================================================================================================
+; Create/Load/Write Rando Ctxt Data
+; ==================================================================================================
+
+; Load Rando Data from sram.
+; Replaces lw t6, 0x1354 (s0)
+;          lw t8, 0x0020 (sp)
+.orga 0xB06224 ; memory 800902C4
+    jal load_rando_sram
+    nop
+
+; save rando data to sram on filesave.
+; replaces lui      a1, 0x8012
+;          addiu    a1, a2, 0xA5D0
+.orga 0xB065FC ; memory 8009069C
+    jal     save_rando_sram
+    nop
+
+; Create New Rando SRAM File
+; replaces  lw v0, 0x1353(s1)
+;           lui s0, 0x8010
+.orga 0xB06CEC ; memory 80090d8c
+    jal create_rando_file
+    nop

@@ -1,7 +1,7 @@
 .definelabel Shop_Item_Save_Offset, 0xD4 + (0x2C * 0x1C) + 0x10
 
 Shop_Check_Sold_Out:
-    lhu  t6, 0x1c(a0)
+    lh  t6, 0x1c(a0)
 
     ; if var is under 0x32, never sell out
     addi t5, t6, -0x32
@@ -9,17 +9,12 @@ Shop_Check_Sold_Out:
     li   v0, 0
 
     ; t2 = bit mask
-    andi t1, t5, 0x07
     li   t2, 1
-    sllv t2, t2, t1
-
-    ; t1 = byte offset
-    srl  t1, t5, 3
+    sllv t2, t2, t5
 
     ; load byte from save
-    li   t4, SAVE_CONTEXT
-    add  t4, t4, t1
-    lbu  t3, (Shop_Item_Save_Offset)(t4)
+    li   t4, RANDO_SAVE_CTX
+    lw   t3, 0x0C(t4)
 
     ; mask out the bit flag
     and  t3, t3, t2
@@ -40,7 +35,7 @@ Shop_Check_Sold_Out:
 
 
 Shop_Set_Sold_Out:
-    lhu  t6, 0x1c(a1)
+    lh  t6, 0x1c(a1)
 
     ; if var is under 0x32, never sell out
     addi t5, t6, -0x32
@@ -48,21 +43,16 @@ Shop_Set_Sold_Out:
     li   v0, 0
 
     ; t2 = bit mask
-    andi t1, t5, 0x07
     li   t2, 1
-    sllv t2, t2, t1
-
-    ; t1 = byte offset
-    srl  t1, t5, 3
+    sllv t2, t2, t5
 
     ; load byte from save
-    li   t4, SAVE_CONTEXT   
-    add  t4, t4, t1
-    lbu  t3, (Shop_Item_Save_Offset)(t4)
+    li   t4, RANDO_SAVE_CTX
+    lw   t3, 0x0C(t4)
 
     ; set and save the bit flag
     or   t3, t3, t2
-    sb   t3, (Shop_Item_Save_Offset)(t4)
+    sw   t3, 0x0C(t4)
 
 @@return:
     jr  ra
@@ -86,61 +76,32 @@ Shop_Keeper_Init_ID:
     nop
 
 Deku_Check_Sold_Out:
-    li      t0, GLOBAL_CONTEXT
-    li      t1, SAVE_CONTEXT
+    li      t1, RANDO_SAVE_CTX
 
-    lhu     t2, 0xA4(t0)     ; current scene number
-    li      at, 0x3E         ; Grotto Scene
-    bne     t2, at, @@continue ; If in grotto, use a free scene
-
-    lbu     t3, 0x1397(t1)   ; Grotto ID
-    addi    t2, t3, -0xD6
-
-@@continue:
-    lhu     t3, 0x1C(s0)     ; var
-    addi    t3, t3, 1
-    li      t4, 1
-    sllv    t4, t4, t3       ; saleman item bitmask
-
-    li      at, 0x1C         ; Permanant flag entry size
-    mult    t2, at
-    mflo    t5               ; Permanant flag entry offset
-
-    add     t6, t1, t5
-    lw      t7, 0xE4(t6)     ; Saleman bitflag (originally unused)
-
-    and     v0, t4, t7       ; return if flag is set
-
-    jr      ra
-    nop
-
-
-Deku_Set_Sold_Out:
-    li      t0, GLOBAL_CONTEXT
-    li      t1, SAVE_CONTEXT
-
-    lhu     t2, 0xA4(t0)     ; current scene number
-    li      at, 0x3E         ; Grotto Scene
-    bne     t2, at, @@continue ; If in grotto, use a free scene
-
-    lbu     t3, 0x1397(t1)   ; Grotto ID
-    addi    t2, t3, -0xD6
-
-@@continue:
     lh      t3, 0x1C(a0)     ; var
     addi    t3, t3, 1
     li      t4, 1
     sllv    t4, t4, t3       ; saleman item bitmask
 
-    li      at, 0x1C         ; Permanant flag entry size
-    mult    t2, at
-    mflo    t5               ; Permanant flag entry offset
+    lw      t7, 0x08(t1)     ; Saleman bitflag 
 
-    add     t6, t1, t5
-    lw      t7, 0xE4(t6)     ; Saleman bitflag [0xD0 (PFlag Table) + 0x10 (unused offself)]
-
-    or      t7, t4, t7       ; return if flag is set
-    sw      t7, 0xE4(t6)
+    and     t7, t4, t7       ; return if flag is set
 
     jr      ra
-    nop
+    and     v0, t4, t7       ; return if flag is set
+
+
+Deku_Set_Sold_Out:
+    li      t1, RANDO_SAVE_CTX
+
+    lh      t3, 0x1C(a0)     ; var
+    addi    t3, t3, 1
+    li      t4, 1
+    sllv    t4, t4, t3       ; saleman item bitmask
+
+    lw      t7, 0x08(t1)     ; Saleman bitflag 
+
+    or      t7, t4, t7       ; return if flag is set
+
+    jr      ra
+    sw      t7, 0x08(t1)

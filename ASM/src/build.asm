@@ -66,12 +66,19 @@ RANDO_CONTEXT:
 .include "lake_hylia.asm"
 .include "timers.asm"
 .include "shooting_gallery.asm"
+.include "sram.asm"
+.include "file_choose.asm"
 .importobj "../build/bundle.o"
 .align 8
 FONT_TEXTURE:
 .incbin("../resources/font.bin")
 DPAD_TEXTURE:
 .incbin("../resources/dpad.bin")
+.endarea
+
+.org RANDO_SAVE_CTX
+.area 0x200
+
 .endarea
 
 .close
