@@ -595,11 +595,13 @@ typedef struct
   uint8_t         z_targeting;              /* 0x140C */
   char            unk_1A_[0x0001];          /* 0x140D */
   uint16_t        disable_music_flag;       /* 0x140E */
-  char            unk_1B_[0x0014];          /* 0x1410 */
+  char            unk_1B_[0x0002];          /* 0x1410 */
+  uint16_t        cutscene_next;            /* 0x1412 */
+  char            unk_1C_[0x0010];          /* 0x1414 */
   uint16_t        refill_hearts;            /* 0x1424 */
-  char            unk_1C_[0x000A];          /* 0x1426 */
+  char            unk_1D_[0x000A];          /* 0x1426 */
   z64_gameinfo_t *gameinfo;                 /* 0x1430 */
-  char            unk_1D_[0x001C];          /* 0x1434 */
+  char            unk_1E_[0x001C];          /* 0x1434 */
                                             /* 0x1450 */
 } z64_file_t;
 
@@ -668,30 +670,32 @@ typedef struct
                                         /* 0x02EC */
 } z64_gfx_t;
 
+typedef union
+{
+  struct
+  {
+    uint16_t  a  : 1;
+    uint16_t  b  : 1;
+    uint16_t  z  : 1;
+    uint16_t  s  : 1;
+    uint16_t  du : 1;
+    uint16_t  dd : 1;
+    uint16_t  dl : 1;
+    uint16_t  dr : 1;
+    uint16_t     : 2;
+    uint16_t  l  : 1;
+    uint16_t  r  : 1;
+    uint16_t  cu : 1;
+    uint16_t  cd : 1;
+    uint16_t  cl : 1;
+    uint16_t  cr : 1;
+  };
+  uint16_t    pad;
+} pad_t;
+
 typedef struct
 {
-  union
-  {
-    struct
-    {
-      uint16_t  a  : 1;
-      uint16_t  b  : 1;
-      uint16_t  z  : 1;
-      uint16_t  s  : 1;
-      uint16_t  du : 1;
-      uint16_t  dd : 1;
-      uint16_t  dl : 1;
-      uint16_t  dr : 1;
-      uint16_t     : 2;
-      uint16_t  l  : 1;
-      uint16_t  r  : 1;
-      uint16_t  cu : 1;
-      uint16_t  cd : 1;
-      uint16_t  cl : 1;
-      uint16_t  cr : 1;
-    };
-    uint16_t    pad;
-  };
+  pad_t         pad;
   int8_t        x;
   int8_t        y;
 } z64_controller_t;
@@ -708,7 +712,7 @@ struct z64_actor_s
   char            unk_01_[0x0002];  /* 0x001A */
   uint16_t        variable;         /* 0x001C */
   uint8_t         alloc_index;      /* 0x001E */
-  char            unk_02_;          /* 0x001F */
+  char            navi_tgt_dist;    /* 0x001F */
   uint16_t        sound_effect;     /* 0x0020 */
   char            unk_03_[0x0002];  /* 0x0022 */
   z64_xyzf_t      pos_2;            /* 0x0024 */
@@ -726,9 +730,12 @@ struct z64_actor_s
   float           min_vel_y;        /* 0x0070 */
   void           *unk_08_;          /* 0x0074 */
   z64_col_poly_t *floor_poly;       /* 0x0078 */
-  char            unk_0A_[0x000C];  /* 0x007C */
+  char            unk_09_[0x000C];  /* 0x007C */
   uint16_t        unk_flags_00;     /* 0x0088 */
-  char            unk_0B_[0x000E];  /* 0x0090 */
+  int16_t         unk_roty;         /* 0x008A */
+  float           distsq_from_link; /* 0x008C */
+  float           xzdist_from_link; /* 0x0090 */
+  float           ydist_from_link;  /* 0x0094 */
   void           *damage_table;     /* 0x0098 */
   z64_xyzf_t      vel_2;            /* 0x009C */
   char            unk_0C_[0x0006];  /* 0x00A8 */
@@ -787,11 +794,11 @@ typedef struct
   uint16_t          unk_00_;
   z64_controller_t  raw_prev;
   uint16_t          unk_01_;
-  uint16_t          pad_pressed;
+  pad_t             pad_pressed;
   int8_t            x_diff;
   int8_t            y_diff;
   char              unk_02_[0x0002];
-  uint16_t          pad_released;
+  pad_t             pad_released;
   int8_t            adjusted_x;
   int8_t            adjusted_y;
   char              unk_03_[0x0002];
@@ -1125,6 +1132,7 @@ typedef struct
 #define z64_GetMatrixStackTop_addr              0x800AA78C
 #define z64_DisplayTextbox_addr                 0x800DCE14
 #define gspF3DEX2_NoN_fifoTextStart             0x800E3F70
+#define z64_fog_state_addr                      0x800F1640
 #define z64_day_speed_addr                      0x800F1650
 #define z64_light_handlers_addr                 0x800F1B40
 #define z64_object_table_addr                   0x800F8FF8
@@ -1196,6 +1204,7 @@ typedef float *(*z64_GetMatrixStackTop_proc)();
 #define z64_vi_counter          (*(uint32_t*)         z64_vi_counter_addr)
 #define z64_stab                (*(z64_stab_t*)       z64_stab_addr)
 #define z64_scene_table         ( (z64_scene_table_t*)z64_scene_table_addr)
+#define z64_fog_state           (*(uint8_t*)          z64_fog_state_addr)
 #define z64_day_speed           (*(uint16_t*)         z64_day_speed_addr)
 #define z64_light_handlers      ( (z64_light_handler_t*)                      \
                                                       z64_light_handlers_addr)

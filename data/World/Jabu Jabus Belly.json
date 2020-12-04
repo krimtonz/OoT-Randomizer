@@ -4,8 +4,7 @@
         "dungeon": "Jabu Jabus Belly",
         "exits": {
             "Zoras Fountain": "True",
-            "Jabu Jabus Belly Main": "
-                has_slingshot or has_explosives or Boomerang"
+            "Jabu Jabus Belly Main": "can_use_projectile"
         }
     },
     {
@@ -14,11 +13,16 @@
         "locations": {
             "Boomerang Chest": "True",
             "GS Jabu Jabu Water Switch Room": "True",
-            "Jabu Deku Scrub Deku Nuts": "True"
+            "GS Jabu Jabu Lobby Basement Lower": "can_use(Boomerang) or can_use(Hookshot)",
+            "GS Jabu Jabu Lobby Basement Upper": "can_use(Boomerang) or can_use(Hookshot)",
+            "Jabu Deku Scrub Deku Nuts": "
+                can_dive or is_child or logic_jabu_scrub_jump_dive or can_use(Iron_Boots)",
+            "Fairy Pot": "has_bottle"
         },
         "exits": {
             "Jabu Jabus Belly Beginning": "True",
-            "Jabu Jabus Belly Depths": "Boomerang"
+            "Jabu Jabus Belly Depths": "can_use(Boomerang)",
+            "Jabu Jabus Belly Boss Area": "logic_jabu_boss_gs_adult and can_use(Hover_Boots)"
         }
     },
     {
@@ -26,22 +30,21 @@
         "dungeon": "Jabu Jabus Belly",
         "locations": {
             "Jabu Jabus Belly Map Chest": "True",
-            "Jabu Jabus Belly Compass Chest": "True",
-            "GS Jabu Jabu Lobby Basement Lower": "True",
-            "GS Jabu Jabu Lobby Basement Upper": "True"
+            "Jabu Jabus Belly Compass Chest": "True"
         },
         "exits": {
             "Jabu Jabus Belly Main": "True",
-            "Jabu Jabus Belly Boss Area": "has_sticks or Kokiri_Sword"
+            "Jabu Jabus Belly Boss Area": "Sticks or Kokiri_Sword"
         }
     },
     {
         "region_name": "Jabu Jabus Belly Boss Area",
         "dungeon": "Jabu Jabus Belly",
         "locations": {
-            "Barinade Heart": "True",
-            "Barinade": "True",
-            "GS Jabu Jabu Near Boss": "True"
+            "Barinade Heart": "can_use(Boomerang)",
+            "Barinade": "can_use(Boomerang)",
+            "GS Jabu Jabu Near Boss": "True",
+            "Nut Pot": "True"
         },
         "exits": {
             "Jabu Jabus Belly Main": "True"

@@ -1,4 +1,5 @@
 import io
+import itertools
 import json
 import logging
 import os
@@ -7,18 +8,27 @@ import struct
 import subprocess
 import random
 import copy
-from Utils import is_bundled, subprocess_args
-
-from Utils import local_path, data_path, default_output_path
+from Utils import is_bundled, subprocess_args, local_path, data_path, default_output_path, get_version_bytes
+from ntype import BigStream, uint32
+from crc import calculate_crc
+from version import __version__
 
 DMADATA_START = 0x7430
 
-class LocalRom(object):
-    def __init__(self, settings, patch=True):
-        self.__last_address = None
+class Rom(BigStream):
 
-        file = settings.rom
-        decomp_file = 'ZOOTDEC.z64'
+    def __init__(self, file=None):
+        super().__init__([])
+
+        self.original = None
+        self.changed_address = {}
+        self.changed_dma = {}
+        self.force_patch = []
+
+        if file is None:
+            return
+
+        decomp_file = local_path('ZOOTDEC.z64')
 
         os.chdir(local_path())
 
@@ -42,10 +52,17 @@ class LocalRom(object):
 
         # Add file to maximum size
         self.buffer.extend(bytearray([0x00] * (0x4000000 - len(self.buffer))))
-        self.original = copy.copy(self.buffer)
-        self.changed_address = {}
-        self.changed_dma = {}
-        self.force_patch = []
+        self.original = self.copy()
+
+
+    def copy(self):
+        new_rom = Rom()
+        new_rom.buffer = copy.copy(self.buffer)
+        new_rom.changed_address = copy.copy(self.changed_address)
+        new_rom.changed_dma = copy.copy(self.changed_dma)
+        new_rom.force_patch = copy.copy(self.force_patch)
+        return new_rom
+
 
     def decompress_rom_file(self, file, decomp_file):
         validCRC = [
@@ -94,143 +111,39 @@ class LocalRom(object):
             pass
 
 
+    def write_byte(self, address, value):
+        super().write_byte(address, value)
+        self.changed_address[self.last_address-1] = value
+
+
+    def write_bytes(self, address, values):
+        super().write_bytes(address, values)
+        self.changed_address.update(zip(range(address, address+len(values)), values))
+
+
     def restore(self):
-        self.buffer = copy.copy(self.original)
+        self.buffer = copy.copy(self.original.buffer)
         self.changed_address = {}
         self.changed_dma = {}
-        self.force_patch = []        
-        self.__last_address = None
+        self.force_patch = []
+        self.last_address = None
+
 
     def sym(self, symbol_name):
         return self.symbols.get(symbol_name)
 
-    def seek_address(self, address):
-        self.__last_address = address
-
-    def read_byte(self, address):
-        if address == None:
-            address = self.__last_address
-        self.__last_address = address + 1
-        return self.buffer[address]
-
-    def read_bytes(self, address, len):
-        if address == None:
-            address = self.__last_address
-        self.__last_address = address + len
-        return self.buffer[address : address + len]
-
-    def read_int16(self, address):
-        if address == None:
-            address = self.__last_address
-        self.__last_address = address + 2
-        return int16.unpack_from(self.buffer, address)[0]
-
-    def read_int24(self, address):
-        if address == None:
-            address = self.__last_address
-        return bytes_as_int24(self.read_bytes(address, 3))
-
-    def read_int32(self, address):
-        if address == None:
-            address = self.__last_address
-        self.__last_address = address + 4
-        return int32.unpack_from(self.buffer, address)[0]
-
-    def write_byte(self, address, value):
-        if address == None:
-            address = self.__last_address
-        self.buffer[address] = value
-        self.changed_address[address] = value
-        self.__last_address = address + 1
-
-    def write_sbyte(self, address, value):
-        if address == None:
-            address = self.__last_address
-        self.write_bytes(address, struct.pack('b', value))
-
-    def write_int16(self, address, value):
-        if address == None:
-            address = self.__last_address
-        self.write_bytes(address, int16_as_bytes(value))
-
-    def write_int24(self, address, value):
-        if address == None:
-            address = self.__last_address
-        self.write_bytes(address, int24_as_bytes(value))
-
-    def write_int32(self, address, value):
-        if address == None:
-            address = self.__last_address
-        self.write_bytes(address, int32_as_bytes(value))
-
-    def write_f32(self, address, value:float):
-        if address == None:
-            address = self.__last_address
-        self.write_bytes(address, struct.pack('>f', value))
-
-    def write_bytes(self, startaddress, values):
-        if startaddress == None:
-            startaddress = self.__last_address
-        for i, value in enumerate(values):
-            self.write_byte(startaddress + i, value)
-
-    def write_int16s(self, startaddress, values):
-        if startaddress == None:
-            startaddress = self.__last_address
-        for i, value in enumerate(values):
-            self.write_int16(startaddress + (i * 2), value)
-
-    def write_int24s(self, startaddress, values):
-        if startaddress == None:
-            startaddress = self.__last_address
-        for i, value in enumerate(values):
-            self.write_int24(startaddress + (i * 3), value)
-
-    def write_int32s(self, startaddress, values):
-        if startaddress == None:
-            startaddress = self.__last_address
-        for i, value in enumerate(values):
-            self.write_int32(startaddress + (i * 4), value)
 
     def write_to_file(self, file):
         self.verify_dmadata()
-        self.update_crc()
+        self.update_header()
         with open(file, 'wb') as outfile:
             outfile.write(self.buffer)
 
-    def update_crc(self):
-        t1 = t2 = t3 = t4 = t5 = t6 = 0xDF26F436
-        u32 = 0xFFFFFFFF
 
-        words = [t[0] for t in int32.iter_unpack(self.buffer[0x1000:0x101000])]
-        words2 = [t[0] for t in int32.iter_unpack(self.buffer[0x750:0x850])]
-
-        for cur in range(len(words)):
-            d = words[cur]
-
-            if ((t6 + d) & u32) < t6:
-                t4 += 1
-
-            t6 = (t6+d) & u32
-            t3 ^= d
-            shift = d & 0x1F
-            r = ((d << shift) | (d >> (32 - shift))) & u32
-            t5 = (t5 + r) & u32
-
-            if t2 > d:
-                t2 ^= r
-            else:
-                t2 ^= t6 ^ d
-
-            data2 = words2[cur & 0x3F]
-            t1 += data2 ^ d
-            t1 &= u32
-
-        crc0 = t6 ^ t4 ^ t3
-        crc1 = t5 ^ t2 ^ t1
-
-        # Finally write the crc back to the rom
-        self.write_int32s(0x10, [crc0, crc1])
+    def update_header(self):
+        self.write_bytes(0x35, get_version_bytes(__version__))
+        crc = calculate_crc(self)
+        self.write_int32s(0x10, [crc[0], crc[1]])
 
 
     def read_rom(self, file):
@@ -241,6 +154,7 @@ class LocalRom(object):
         except FileNotFoundError as ex:
             raise FileNotFoundError('Invalid path to Base ROM: "' + file + '"')
 
+
     # dmadata/file management helper functions
 
     def _get_dmadata_record(self, cur):
@@ -248,13 +162,6 @@ class LocalRom(object):
         end = self.read_int32(cur+0x04)
         size = end-start
         return start, end, size
-
-
-    def _get_old_dmadata_record(self, cur):
-        old_dma_start = int32.unpack_from(self.original, cur)[0]
-        old_dma_end = int32.unpack_from(self.original, cur + 0x04)[0]
-        old_size = old_dma_end-old_dma_start
-        return old_dma_start, old_dma_end, old_size
 
 
     def get_dmadata_record_by_key(self, key):
@@ -267,18 +174,6 @@ class LocalRom(object):
                 return dma_start, dma_end, dma_size
             cur += 0x10
             dma_start, dma_end, dma_size = self._get_dmadata_record(cur)
-
-
-    def get_old_dmadata_record_by_key(self, key):
-        cur = DMADATA_START
-        dma_start, dma_end, dma_size = self._get_old_dmadata_record(cur)
-        while True:
-            if dma_start == 0 and dma_end == 0:
-                return None
-            if dma_start == key:
-                return dma_start, dma_end, dma_size
-            cur += 0x10
-            dma_start, dma_end, dma_size = self._get_old_dmadata_record(cur)
 
 
     def verify_dmadata(self):
@@ -312,7 +207,8 @@ class LocalRom(object):
                 '\n-------------------------------------\n'.join(overlapping_records))
 
 
-    # if key is not found, then add an entry
+    # update dmadata record with start vrom address "key"
+    # if key is not found, then attempt to add a new dmadata entry
     def update_dmadata_record(self, key, start, end, from_file=None):
         cur, dma_data_end = self.get_dma_table_range()
         dma_index = 0
@@ -336,6 +232,7 @@ class LocalRom(object):
                     from_file = key
             self.changed_dma[dma_index] = (from_file, start, end - start)
 
+
     def get_dma_table_range(self):
         cur = DMADATA_START
         dma_start, dma_end, dma_size = self._get_dmadata_record(cur)
@@ -358,7 +255,7 @@ class LocalRom(object):
         dma_data_end = None
         dma_index = 0
         dma_start, dma_end, dma_size = self._get_dmadata_record(cur)
-        old_dma_start, old_dma_end, old_dma_size = self._get_old_dmadata_record(cur)
+        old_dma_start, old_dma_end, old_dma_size = self.original._get_dmadata_record(cur)
 
         while True:
             if (dma_start == 0 and dma_end == 0) and \
@@ -372,7 +269,7 @@ class LocalRom(object):
             cur += 0x10
             dma_index += 1
             dma_start, dma_end, dma_size = self._get_dmadata_record(cur)
-            old_dma_start, old_dma_end, old_dma_size = self._get_old_dmadata_record(cur)
+            old_dma_start, old_dma_end, old_dma_size = self.original._get_dmadata_record(cur)
 
 
     # gets the last used byte of rom defined in the DMA table
@@ -388,29 +285,5 @@ class LocalRom(object):
 
             max_end = max(max_end, this_end)
             cur += 0x10
+        max_end = ((max_end + 0x0F) >> 4) << 4
         return max_end
-
-
-int16 = struct.Struct('>H')
-int32 = struct.Struct('>I')
-
-def int16_as_bytes(value):
-    value = value & 0xFFFF
-    return [(value >> 8) & 0xFF, value & 0xFF]
-
-def int24_as_bytes(value):
-    value = value & 0xFFFFFF
-    return [(value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF]
-
-def int32_as_bytes(value):
-    value = value & 0xFFFFFFFF
-    return [(value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF]
-
-def bytes_as_int16(values):
-    return (values[0] << 8) | values[1]
-
-def bytes_as_int24(values):
-    return (values[0] << 16) | (values[1] << 8) | values[2]
-
-def bytes_as_int32(values):
-    return (values[0] << 24) | (values[1] << 16) | (values[2] << 8) | values[3]

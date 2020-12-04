@@ -4,60 +4,68 @@
         "dungeon": "Dodongos Cavern",
         "exits": {
             "Dodongos Cavern Entryway": "True",
-            "Dodongos Cavern Lobby": "can_blast_or_smash or Progressive_Strength_Upgrade"
+            "Dodongos Cavern Lobby": "
+                here(can_blast_or_smash or Progressive_Strength_Upgrade)"
         }
     },
     {
         "region_name": "Dodongos Cavern Lobby",
         "dungeon": "Dodongos Cavern",
         "locations": {
+            "Deku Baba Sticks": "is_adult or Kokiri_Sword or can_use(Boomerang)",
             "Dodongos Cavern MQ Map Chest": "True",
-            "Dodongos Cavern MQ Compass Chest": "is_adult or can_child_attack or has_nuts",
-            "Dodongos Cavern MQ Larva Room Chest": "
-                (has_sticks and (has_explosives or Progressive_Strength_Upgrade)) or 
-                has_fire_source",
+            "Dodongos Cavern MQ Compass Chest": "is_adult or can_child_attack or Nuts",
+            "Dodongos Cavern MQ Larva Room Chest": "can_use(Sticks) or has_fire_source",
             "Dodongos Cavern MQ Torch Puzzle Room Chest": "
-                can_blast_or_smash or has_sticks or can_use(Dins_Fire) or 
+                can_blast_or_smash or can_use(Sticks) or can_use(Dins_Fire) or 
                 (is_adult and (logic_dc_jump or Hover_Boots or Progressive_Hookshot))",
-            "Dodongos Cavern MQ Bomb Bag Chest": "
-                is_adult or 
-                (has_slingshot and 
-                    (has_explosives or 
-                        ((has_sticks or can_use(Dins_Fire)) and 
-                            (damage_multiplier != 'ohko' or has_bottle or can_use(Nayrus_Love)))))",
             "GS Dodongo's Cavern MQ Song of Time Block Room": "
                 can_play(Song_of_Time) and (can_child_attack or is_adult)",
-            "GS Dodongo's Cavern MQ Larva Room": "
-                (has_sticks and (has_explosives or Progressive_Strength_Upgrade)) or has_fire_source",
+            "GS Dodongo's Cavern MQ Larva Room": "can_use(Sticks) or has_fire_source",
             "GS Dodongo's Cavern MQ Lizalfos Room": "can_blast_or_smash",
-            "GS Dodongo's Cavern MQ Scrub Room": "
-                (Boomerang and (has_slingshot or (is_adult and has_explosives)) and 
-                    (has_explosives or (Progressive_Strength_Upgrade and 
-                        (can_use(Hammer) or 
-                            ((has_sticks or can_use(Dins_Fire) or 
-                                (is_adult and (logic_dc_jump or Hover_Boots))) and 
-                            (damage_multiplier != 'ohko' or has_bottle or can_use(Nayrus_Love))))))) or 
-                (can_use(Hookshot) and (has_explosives or Progressive_Strength_Upgrade or 
-                    has_bow or can_use(Dins_Fire)))",
             "DC MQ Deku Scrub Deku Sticks": "can_stun_deku",
             "DC MQ Deku Scrub Deku Seeds": "can_stun_deku",
             "DC MQ Deku Scrub Deku Shield": "can_stun_deku",
-            "DC MQ Deku Scrub Red Potion": "
-                is_adult or has_explosives or 
-                ((has_sticks or can_use(Dins_Fire)) and 
-                    (damage_multiplier != 'ohko' or has_bottle or can_use(Nayrus_Love)))"
+            "Dodongos Cavern Gossip Stone": "True",
+            "Gossip Stone Fairy": "can_summon_gossip_fairy and has_bottle"
         },
         "exits": {
-            "Dodongos Cavern Boss Area": "has_explosives",
-            "Dodongos Gossip Stone": "
-                hints != 'mask' or has_explosives or Progressive_Strength_Upgrade"
+            "Dodongos Cavern Lower Right Side": "
+                here(can_blast_or_smash or
+                      ((can_use(Sticks) or can_use(Dins_Fire)) and
+                       (damage_multiplier != 'ohko' or Fairy or can_use(Nayrus_Love))))",
+            "Dodongos Cavern Bomb Bag Area": "
+                is_adult or (here(is_adult) and has_explosives) or
+                (logic_dc_mq_child_bombs and (Kokiri_Sword or Sticks) and
+                    (damage_multiplier != 'ohko' or Fairy or can_use(Nayrus_Love)))",
+            "Dodongos Cavern Boss Area": "has_explosives"
         }
     },
     {
-        "region_name": "Dodongos Gossip Stone",
+        "region_name": "Dodongos Cavern Lower Right Side",
         "dungeon": "Dodongos Cavern",
         "locations": {
-            "Dodongos Cavern Gossip Stone": "True"
+            "DC MQ Deku Scrub Red Potion": "can_stun_deku"
+        },
+        "exits": {
+            "Dodongos Cavern Bomb Bag Area": "
+                (here(is_adult and can_use(Bow)) or Progressive_Strength_Upgrade or
+                 can_use(Dins_Fire) or has_explosives) and
+                (can_use(Slingshot))"
+        }
+    },
+    {
+        "region_name": "Dodongos Cavern Bomb Bag Area",
+        "dungeon": "Dodongos Cavern",
+        "locations": {
+            "Dodongos Cavern MQ Bomb Bag Chest": "True",
+            "GS Dodongo's Cavern MQ Scrub Room": "
+                (here(is_adult and can_use(Bow)) or Progressive_Strength_Upgrade or
+                 can_use(Dins_Fire) or has_explosives) and
+                (can_use(Hookshot) or can_use(Boomerang))"
+        },
+        "exits": {
+            "Dodongos Cavern Lower Right Side": "True"
         }
     },
     {
@@ -67,12 +75,13 @@
             "Dodongos Cavern MQ Under Grave Chest": "True",
             "Chest Above King Dodongo": "True",
             "King Dodongo Heart": "
-                (has_bombs or Progressive_Strength_Upgrade) and 
-                (is_adult or has_sticks or Kokiri_Sword)",
+                (Bombs or Progressive_Strength_Upgrade) and 
+                (is_adult or Sticks or Kokiri_Sword)",
             "King Dodongo": "
-                (has_bombs or Progressive_Strength_Upgrade) and 
-                (is_adult or has_sticks or Kokiri_Sword)",
-            "GS Dodongo's Cavern MQ Back Area": "True"
+                (Bombs or Progressive_Strength_Upgrade) and 
+                (is_adult or Sticks or Kokiri_Sword)",
+            "GS Dodongo's Cavern MQ Back Area": "True",
+            "Fairy Pot": "has_bottle"
         }
     }
 ]

@@ -6,19 +6,33 @@
             "Deku Tree Lobby Chest": "True",
             "Deku Tree Compass Chest": "True",
             "Deku Tree Compass Room Side Chest": "True",
-            "Deku Tree Basement Chest": "can_child_attack or has_nuts",
-            "GS Deku Tree Compass Room": "can_child_attack",
+            "Deku Tree Basement Chest": "is_adult or can_child_attack or Nuts",
+            "GS Deku Tree Compass Room": "is_adult or can_child_attack",
             "GS Deku Tree Basement Vines": "
-                has_slingshot or Boomerang or has_explosives or can_use(Dins_Fire) or 
-                (logic_deku_basement_gs and (has_sticks or Kokiri_Sword))",
-            "GS Deku Tree Basement Gate": "can_child_attack",
-            "Deku Tree Gossip Stone (Left)": "True",
-            "Deku Tree Gossip Stone (Right)": "True"
+                can_use_projectile or can_use(Dins_Fire) or
+                (logic_deku_basement_gs and (is_adult or Sticks or Kokiri_Sword))",
+            "GS Deku Tree Basement Gate": "is_adult or can_child_attack",
+            "GS Deku Tree Basement Back Room": "
+                (here(has_fire_source_with_torch or
+                      (logic_deku_b1_webs_with_bow and can_use(Bow))) and
+                    here(can_use(Slingshot) or can_use(Bow)) and
+                    here(can_blast_or_smash) and
+                    here(can_use(Hookshot) or can_use(Boomerang))) or
+                ((logic_deku_b1_skip or here(is_adult)) and is_child and
+                    has_explosives and can_use(Boomerang) and
+                    (Sticks or can_use(Dins_Fire)))",
+            "Deku Baba Sticks": "is_adult or Kokiri_Sword or Boomerang",
+            "Deku Baba Nuts": "
+                is_adult or Slingshot or Sticks or 
+                has_explosives or Kokiri_Sword or can_use(Dins_Fire)"
         },
         "exits": {
-            "Kokiri Forest": "True",
-            "Deku Tree Slingshot Room": "Buy_Deku_Shield",
-            "Deku Tree Boss Room": "has_slingshot and (has_sticks or can_use(Dins_Fire))"
+            "Outside Deku Tree": "True",
+            "Deku Tree Slingshot Room": "here(has_shield)",
+            "Deku Tree Boss Room": "
+                here(has_fire_source_with_torch or
+                     (logic_deku_b1_webs_with_bow and can_use(Bow))) and
+                (logic_deku_b1_skip or here(is_adult or can_use(Slingshot)))"
         }
     },
     {
@@ -35,10 +49,15 @@
     {
         "region_name": "Deku Tree Boss Room",
         "dungeon": "Deku Tree",
+        "events": {
+            "Deku Tree Clear": "
+                here(has_shield) and (is_adult or Kokiri_Sword or Sticks)"
+        },
         "locations": {
-            "GS Deku Tree Basement Back Room": "Boomerang and (has_explosives)",
-            "Queen Gohma Heart": "Buy_Deku_Shield and (Kokiri_Sword or has_sticks)",
-            "Queen Gohma": "Buy_Deku_Shield and (Kokiri_Sword or has_sticks)"
+            "Queen Gohma Heart": "
+                here(has_shield) and (is_adult or Kokiri_Sword or Sticks)",
+            "Queen Gohma": "
+                here(has_shield) and (is_adult or Kokiri_Sword or Sticks)"
         },
         "exits": {
             "Deku Tree Lobby": "True"

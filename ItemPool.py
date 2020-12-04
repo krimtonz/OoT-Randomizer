@@ -1,8 +1,11 @@
 from collections import namedtuple
 import logging
 import random
+from itertools import chain
 from Utils import random_choices
 from Item import ItemFactory
+from ItemList import item_table
+from LocationList import location_groups
 
 
 #This file sets the item pools for various modes. Timed modes and triforce hunt are enforced first, and then extra items are specified per mode to fill in the remaining space.
@@ -117,6 +120,12 @@ item_difficulty_max = {
     },
 }
 
+TriforceCounts = {
+    'plentiful': 2.00,
+    'balanced':  1.50,
+    'scarce':    1.25,
+    'minimal':   1.00,
+}
 
 DT_vanilla = (
     ['Recovery Heart'] * 2)
@@ -212,7 +221,20 @@ normal_bottles = [
     'Bottle with Big Poe',
     'Bottle with Blue Fire']
 
-normal_bottle_count = 3
+bottle_count = 4
+
+
+dungeon_rewards = [
+    'Kokiri Emerald',
+    'Goron Ruby',
+    'Zora Sapphire',
+    'Forest Medallion',
+    'Fire Medallion',
+    'Water Medallion',
+    'Shadow Medallion',
+    'Spirit Medallion',
+    'Light Medallion'
+]
 
 
 normal_rupees = (
@@ -352,18 +374,6 @@ deku_scrubs_items = (
     ['Rupees (5)'] * 4) # ['Green Potion']
 
 
-rewardlist = [
-    'Kokiri Emerald',
-    'Goron Ruby',
-    'Zora Sapphire',
-    'Forest Medallion',
-    'Fire Medallion',
-    'Water Medallion',
-    'Spirit Medallion',
-    'Shadow Medallion',
-    'Light Medallion']
-
-
 songlist = [
     'Zeldas Lullaby',
     'Eponas Song',
@@ -463,28 +473,178 @@ tradeitemoptions = (
     'claim_check')
 
 
-eventlocations = {
+fixedlocations = {
     'Ganon': 'Triforce',
     'Zeldas Letter': 'Zeldas Letter',
-    'Magic Bean Salesman': 'Magic Bean',
-    'King Zora Moves': 'Bottle',
-    'Master Sword Pedestal': 'Master Sword',
-    'Epona': 'Epona',
-    'Deku Baba Sticks': 'Deku Stick Drop',
-    'Goron City Stick Pot': 'Deku Stick Drop',
-    'Zoras Domain Stick Pot': 'Deku Stick Drop',
-    'Deku Baba Nuts': 'Deku Nut Drop',
-    'Zoras Domain Nut Pot': 'Deku Nut Drop',
-    'Gerudo Fortress Carpenter Rescue': 'Carpenter Rescue',
+    'Pierre': 'Scarecrow Song',
+    'Deliver Ruto\'s Letter': 'Deliver Letter',
+    'Master Sword Pedestal': 'Time Travel',
+    'Bombchu Bowling Bombchus': 'Bombchu Drop',
     'Haunted Wasteland Bombchu Salesman': 'Bombchus',
-    'Ganons Castle Forest Trial Clear': 'Forest Trial Clear',
-    'Ganons Castle Fire Trial Clear': 'Fire Trial Clear',
-    'Ganons Castle Water Trial Clear': 'Water Trial Clear',
-    'Ganons Castle Shadow Trial Clear': 'Shadow Trial Clear',
-    'Ganons Castle Spirit Trial Clear': 'Spirit Trial Clear',
-    'Ganons Castle Light Trial Clear': 'Light Trial Clear'
 }
 
+droplocations = {
+    'Deku Baba Sticks': 'Deku Stick Drop',
+    'Deku Baba Nuts': 'Deku Nut Drop',
+    'Stick Pot': 'Deku Stick Drop',
+    'Nut Pot': 'Deku Nut Drop',
+    'Nut Crate': 'Deku Nut Drop',
+    'Blue Fire': 'Blue Fire',
+    'Lone Fish': 'Fish',
+    'Fish Group': 'Fish',
+    'Bug Rock': 'Bugs',
+    'Bug Shrub': 'Bugs',
+    'Wandering Bugs': 'Bugs',
+    'Fairy Pot': 'Fairy',
+    'Free Fairies': 'Fairy',
+    'Wall Switch Fairy': 'Fairy',
+    'Butterfly Fairy': 'Fairy',
+    'Gossip Stone Fairy': 'Fairy',
+    'Bean Plant Fairy': 'Fairy',
+    'Fairy Pond': 'Fairy',
+    'Big Poe Kill': 'Big Poe',
+}
+
+vanillaBK = {
+    'Fire Temple Boss Key Chest': 'Boss Key (Fire Temple)',
+    'Shadow Temple Boss Key Chest': 'Boss Key (Shadow Temple)',
+    'Spirit Temple Boss Key Chest': 'Boss Key (Spirit Temple)',
+    'Water Temple Boss Key Chest': 'Boss Key (Water Temple)',
+    'Forest Temple Boss Key Chest': 'Boss Key (Forest Temple)',
+
+    'Fire Temple MQ Boss Key Chest': 'Boss Key (Fire Temple)',
+    'Shadow Temple MQ Boss Key Chest': 'Boss Key (Shadow Temple)',
+    'Spirit Temple MQ Boss Key Chest': 'Boss Key (Spirit Temple)',
+    'Water Temple MQ Boss Key Chest': 'Boss Key (Water Temple)',
+    'Forest Temple MQ Boss Key Chest': 'Boss Key (Forest Temple)',    
+}
+
+vanillaMC = {
+    'Bottom of the Well Center Large Chest': 'Compass (Bottom of the Well)',
+    'Deku Tree Compass Chest': 'Compass (Deku Tree)',
+    'Dodongos Cavern Compass Chest': 'Compass (Dodongos Cavern)',
+    'Fire Temple Compass Chest': 'Compass (Fire Temple)',
+    'Forest Temple Blue Poe Chest': 'Compass (Forest Temple)',
+    'Ice Cavern Compass Chest': 'Compass (Ice Cavern)',
+    'Jabu Jabus Belly Compass Chest': 'Compass (Jabu Jabus Belly)',
+    'Shadow Temple Compass Chest': 'Compass (Shadow Temple)',
+    'Spirit Temple Compass Chest': 'Compass (Spirit Temple)',
+    'Water Temple Compass Chest': 'Compass (Water Temple)',
+
+    'Bottom of the Well Basement Chest': 'Map (Bottom of the Well)',
+    'Deku Tree Lobby Chest': 'Map (Deku Tree)',
+    'Dodongos Cavern Map Chest': 'Map (Dodongos Cavern)',
+    'Fire Temple Map Chest': 'Map (Fire Temple)',
+    'Forest Temple Map Chest': 'Map (Forest Temple)',
+    'Ice Cavern Map Chest': 'Map (Ice Cavern)',
+    'Jabu Jabus Belly Map Chest': 'Map (Jabu Jabus Belly)',
+    'Shadow Temple Map Chest': 'Map (Shadow Temple)',
+    'Spirit Temple Map Chest': 'Map (Spirit Temple)',
+    'Water Temple Map Chest': 'Map (Water Temple)',
+
+    'Bottom of the Well MQ Compass Chest': 'Compass (Bottom of the Well)',
+    'Deku Tree MQ Compass Chest': 'Compass (Deku Tree)',
+    'Dodongos Cavern MQ Compass Chest': 'Compass (Dodongos Cavern)',
+    'Fire Temple MQ Compass Chest': 'Compass (Fire Temple)',
+    'Forest Temple MQ Compass Chest': 'Compass (Forest Temple)',
+    'Ice Cavern MQ Compass Chest': 'Compass (Ice Cavern)',
+    'Jabu Jabus Belly MQ Compass Chest': 'Compass (Jabu Jabus Belly)',
+    'Shadow Temple MQ Compass Chest': 'Compass (Shadow Temple)',
+    'Spirit Temple MQ Compass Chest': 'Compass (Spirit Temple)',
+    'Water Temple MQ Compass Chest': 'Compass (Water Temple)',
+
+    'Bottom of the Well MQ Map Chest': 'Map (Bottom of the Well)',
+    'Deku Tree MQ Lobby Chest': 'Map (Deku Tree)',
+    'Dodongos Cavern MQ Map Chest': 'Map (Dodongos Cavern)',
+    'Fire Temple MQ Map Chest': 'Map (Fire Temple)',
+    'Forest Temple MQ Map Chest': 'Map (Forest Temple)',
+    'Ice Cavern MQ Map Chest': 'Map (Ice Cavern)',
+    'Jabu Jabus Belly MQ Map Chest': 'Map (Jabu Jabus Belly)',
+    'Shadow Temple MQ Map Chest': 'Map (Shadow Temple)',
+    'Spirit Temple MQ Map Chest': 'Map (Spirit Temple)',
+    'Water Temple MQ Map Chest': 'Map (Water Temple)',
+}
+
+vanillaSK = {
+    'Bottom of the Well Front Left Hidden Wall': 'Small Key (Bottom of the Well)',
+    'Bottom of the Well Right Bottom Hidden Wall': 'Small Key (Bottom of the Well)',
+    'Bottom of the Well Freestanding Key': 'Small Key (Bottom of the Well)',
+    'Fire Temple Big Lava Room Bombable Chest': 'Small Key (Fire Temple)',
+    'Fire Temple Big Lava Room Open Chest': 'Small Key (Fire Temple)',
+    'Fire Temple Boulder Maze Bombable Pit': 'Small Key (Fire Temple)',
+    'Fire Temple Boulder Maze Lower Chest': 'Small Key (Fire Temple)',
+    'Fire Temple Boulder Maze Side Room': 'Small Key (Fire Temple)',
+    'Fire Temple Boulder Maze Upper Chest': 'Small Key (Fire Temple)',
+    'Fire Temple Chest Near Boss': 'Small Key (Fire Temple)',
+    'Fire Temple Highest Goron Chest': 'Small Key (Fire Temple)',
+    'Forest Temple Chest Behind Lobby': 'Small Key (Forest Temple)',
+    'Forest Temple First Chest': 'Small Key (Forest Temple)',
+    'Forest Temple Floormaster Chest': 'Small Key (Forest Temple)',
+    'Forest Temple Red Poe Chest': 'Small Key (Forest Temple)',
+    'Forest Temple Well Chest': 'Small Key (Forest Temple)',
+    'Ganons Castle Light Trial Invisible Enemies Chest': 'Small Key (Ganons Castle)',
+    'Ganons Castle Light Trial Lullaby Chest': 'Small Key (Ganons Castle)',
+    'Gerudo Training Grounds Beamos Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds Eye Statue Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds Hammer Room Switch Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds Heavy Block Third Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds Hidden Ceiling Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds Near Scarecrow Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds Stalfos Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds Underwater Silver Rupee Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds Freestanding Key': 'Small Key (Gerudo Training Grounds)',
+    'Shadow Temple After Wind Hidden Chest': 'Small Key (Shadow Temple)',
+    'Shadow Temple Early Silver Rupee Chest': 'Small Key (Shadow Temple)',
+    'Shadow Temple Falling Spikes Switch Chest': 'Small Key (Shadow Temple)',
+    'Shadow Temple Hidden Floormaster Chest': 'Small Key (Shadow Temple)',
+    'Shadow Temple Freestanding Key': 'Small Key (Shadow Temple)',
+    'Spirit Temple Child Right Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple Early Adult Right Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple Near Four Armos Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple Statue Hand Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple Sun Block Room Chest': 'Small Key (Spirit Temple)',
+    'Water Temple Central Bow Target Chest': 'Small Key (Water Temple)',
+    'Water Temple Central Pillar Chest': 'Small Key (Water Temple)',
+    'Water Temple Cracked Wall Chest': 'Small Key (Water Temple)',
+    'Water Temple Dragon Chest': 'Small Key (Water Temple)',
+    'Water Temple River Chest': 'Small Key (Water Temple)',
+    'Water Temple Torches Chest': 'Small Key (Water Temple)',
+
+    'Bottom of the Well MQ Dead Hand Freestanding Key': 'Small Key (Bottom of the Well)',
+    'Bottom of the Well MQ East Inner Room Freestanding Key': 'Small Key (Bottom of the Well)',
+    'Fire Temple MQ Big Lava Room Bombable Chest': 'Small Key (Fire Temple)',
+    'Fire Temple MQ Chest Near Boss': 'Small Key (Fire Temple)',
+    'Fire Temple MQ Maze Side Room': 'Small Key (Fire Temple)',
+    'Fire Temple MQ West Tower Top Chest': 'Small Key (Fire Temple)',
+    'Fire Temple MQ Freestanding Key': 'Small Key (Fire Temple)',
+    'Forest Temple MQ Chest Behind Lobby': 'Small Key (Forest Temple)',
+    'Forest Temple MQ First Chest': 'Small Key (Forest Temple)',
+    'Forest Temple MQ NE Outdoors Lower Chest': 'Small Key (Forest Temple)',
+    'Forest Temple MQ NE Outdoors Upper Chest': 'Small Key (Forest Temple)',
+    'Forest Temple MQ Redead Chest': 'Small Key (Forest Temple)',
+    'Forest Temple MQ Well Chest': 'Small Key (Forest Temple)',
+    'Ganons Castle MQ Shadow Trial Second Chest': 'Small Key (Ganons Castle)',
+    'Ganons Castle MQ Spirit Trial Sun Back Left Chest': 'Small Key (Ganons Castle)',
+    'Ganons Castle MQ Forest Trial Freestanding Key': 'Small Key (Ganons Castle)',
+    'Gerudo Training Grounds MQ Dinolfos Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds MQ Flame Circle Chest': 'Small Key (Gerudo Training Grounds)',
+    'Gerudo Training Grounds MQ Underwater Silver Rupee Chest': 'Small Key (Gerudo Training Grounds)',
+    'Shadow Temple MQ Falling Spikes Switch Chest': 'Small Key (Shadow Temple)',
+    'Shadow Temple MQ Invisible Blades Invisible Chest': 'Small Key (Shadow Temple)',
+    'Shadow Temple MQ Early Gibdos Chest': 'Small Key (Shadow Temple)',
+    'Shadow Temple MQ Near Ship Invisible Chest': 'Small Key (Shadow Temple)',
+    'Shadow Temple MQ Wind Hint Chest': 'Small Key (Shadow Temple)',
+    'Shadow Temple MQ Freestanding Key': 'Small Key (Shadow Temple)',
+    'Spirit Temple MQ Child Center Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple MQ Child Climb South Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple MQ Child Left Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple MQ Entrance Back Left Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple MQ Entrance Front Right Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple MQ Mirror Puzzle Invisible Chest': 'Small Key (Spirit Temple)',
+    'Spirit Temple MQ Silver Block Hallway Chest': 'Small Key (Spirit Temple)',
+    'Water Temple MQ Central Pillar Chest': 'Small Key (Water Temple)',
+    'Water Temple MQ Freestanding Key': 'Small Key (Water Temple)',    
+}
 
 junk_pool_base = [
     ('Bombs (5)',       8),
@@ -498,10 +658,72 @@ junk_pool_base = [
     ('Rupees (20)',     4),
     ('Rupees (50)',     1),
 ]
+
+pending_junk_pool = []
 junk_pool = []
-def get_junk_item(count=1):
-    junk_items, junk_weights = zip(*junk_pool)
-    return random_choices(junk_items, weights=junk_weights, k=count)
+
+
+remove_junk_items = [
+    'Bombs (5)',
+    'Deku Nuts (5)',
+    'Deku Stick (1)',
+    'Recovery Heart',
+    'Arrows (5)',
+    'Arrows (10)',
+    'Arrows (30)',
+    'Rupees (5)',
+    'Rupees (20)',
+    'Rupees (50)',
+    'Rupees (200)',
+    'Deku Nuts (10)',
+    'Bombs (10)',
+    'Bombs (20)',
+    'Deku Seeds (30)',
+    'Ice Trap',
+]
+
+
+item_groups = {
+    'Junk': remove_junk_items,
+    'JunkSong': ('Prelude of Light', 'Serenade of Water'),
+    'AdultTrade': tradeitems,
+    'Bottle': normal_bottles,
+    'Spell': ('Dins Fire', 'Farores Wind', 'Nayrus Love'),
+    'Shield': ('Deku Shield', 'Hylian Shield'),
+    'Song': songlist,
+    'NonWarpSong': songlist[0:6],
+    'WarpSong': songlist[6:],
+    'HealthUpgrade': ('Heart Container', 'Piece of Heart'),
+    'ProgressItem': [name for (name, data) in item_table.items() if data[0] == 'Item' and data[1]],
+    'DungeonReward': dungeon_rewards,
+
+    'ForestFireWater': ('Forest Medallion', 'Fire Medallion', 'Water Medallion'),
+    'FireWater': ('Fire Medallion', 'Water Medallion'),
+}
+
+
+def get_junk_item(count=1, pool=None, plando_pool=None):
+    if count < 1:
+        raise ValueError("get_junk_item argument 'count' must be greater than 0.")
+
+    return_pool = []
+    if pending_junk_pool:
+        pending_count = min(len(pending_junk_pool), count)
+        return_pool = [pending_junk_pool.pop() for _ in range(pending_count)]
+        count -= pending_count
+
+    if pool and plando_pool:
+        jw_list = [(junk, weight) for (junk, weight) in junk_pool
+                   if junk not in plando_pool or pool.count(junk) < plando_pool[junk].count]
+        try:
+            junk_items, junk_weights = zip(*jw_list)
+        except ValueError:
+            raise RuntimeError("Not enough junk is available in the item pool to replace removed items.")
+    else:
+        junk_items, junk_weights = zip(*junk_pool)
+    return_pool.extend(random_choices(junk_items, weights=junk_weights, k=count))
+
+    return return_pool
 
 
 def replace_max_item(items, item, max):
@@ -520,9 +742,17 @@ def generate_itempool(world):
     elif world.junk_ice_traps in ['mayhem', 'onslaught']:
         junk_pool[:] = [('Ice Trap', 1)]
 
-    for location, item in eventlocations.items():
+    fixed_locations = list(filter(lambda loc: loc.name in fixedlocations, world.get_locations()))
+    for location in fixed_locations:
+        item = fixedlocations[location.name]
         world.push_item(location, ItemFactory(item, world))
-        world.get_location(location).locked = True
+        location.locked = True
+
+    drop_locations = list(filter(lambda loc: loc.type == 'Drop', world.get_locations()))
+    for drop_location in drop_locations:
+        item = droplocations[drop_location.name]
+        world.push_item(drop_location, ItemFactory(item, world))
+        drop_location.locked = True
 
     # set up item pool
     (pool, placed_items) = get_pool_core(world)
@@ -531,10 +761,44 @@ def generate_itempool(world):
         world.push_item(location, ItemFactory(item, world))
         world.get_location(location).locked = True
 
-    choose_trials(world)
-    fill_bosses(world)
-
     world.initialize_items()
+    world.distribution.set_complete_itempool(world.itempool)
+
+
+def try_collect_heart_container(world, pool):
+    if 'Heart Container' in pool:
+        pool.remove('Heart Container')
+        pool.extend(get_junk_item())
+        world.state.collect(ItemFactory('Heart Container'))
+        return True
+    return False
+
+
+def try_collect_pieces_of_heart(world, pool):
+    n = pool.count('Piece of Heart') + pool.count('Piece of Heart (Treasure Chest Game)')
+    if n >= 4:
+        for i in range(4):
+            if 'Piece of Heart' in pool:
+                pool.remove('Piece of Heart')
+                world.state.collect(ItemFactory('Piece of Heart'))
+            else:
+                pool.remove('Piece of Heart (Treasure Chest Game)')
+                world.state.collect(ItemFactory('Piece of Heart (Treasure Chest Game)'))
+            pool.extend(get_junk_item())
+        return True
+    return False
+
+
+def collect_pieces_of_heart(world, pool):
+    success = try_collect_pieces_of_heart(world, pool)
+    if not success:
+        try_collect_heart_container(world, pool)
+
+
+def collect_heart_container(world, pool):
+    success = try_collect_heart_container(world, pool)
+    if not success:
+        try_collect_pieces_of_heart(world, pool)
 
 
 def get_pool_core(world):
@@ -546,11 +810,11 @@ def get_pool_core(world):
     else:
         placed_items['Kokiri Sword Chest'] = 'Kokiri Sword'
 
-    if world.open_fountain:
-        bottle = random.choice(normal_bottles)
-        pool.append(bottle)
-    else:
-        pool.append('Bottle with Letter')
+    ruto_bottles = 1
+    if world.zora_fountain == 'open':
+        ruto_bottles = 0
+    elif world.item_pool_value == 'plentiful':
+        ruto_bottles += 1
 
     if world.shuffle_weird_egg:
         pool.append('Weird Egg')
@@ -562,6 +826,29 @@ def get_pool_core(world):
     else:
         placed_items['Gift from Saria'] = 'Ocarina'
         placed_items['Ocarina of Time'] = 'Ocarina'
+
+    if world.shuffle_cows:
+        pool.extend(get_junk_item(10 if world.dungeon_mq['Jabu Jabus Belly'] else 9))
+    else:
+        placed_items['LLR Stables Left Cow'] = 'Milk'
+        placed_items['LLR Stables Right Cow'] = 'Milk'
+        placed_items['LLR Tower Left Cow'] = 'Milk'
+        placed_items['LLR Tower Right Cow'] = 'Milk'
+        placed_items['Links House Cow'] = 'Milk'
+        placed_items['Impas House Cow'] = 'Milk'
+        placed_items['Gerudo Valley Cow'] = 'Milk'
+        placed_items['DMT Grotto Cow'] = 'Milk'
+        placed_items['HF Grotto Cow'] = 'Milk'
+        if world.dungeon_mq['Jabu Jabus Belly']:
+            placed_items['Jabu Jabus Belly MQ Cow'] = 'Milk'
+
+    if world.shuffle_beans:
+        if world.distribution.get_starting_item('Magic Bean') < 10:
+            pool.append('Magic Bean Pack')
+        else:
+            pool.extend(get_junk_item())
+    else:
+        placed_items['Magic Bean Salesman'] = 'Magic Bean'
 
     if world.dungeon_mq['Deku Tree']:
         skulltula_locations_final = skulltula_locations + [
@@ -700,6 +987,12 @@ def get_pool_core(world):
                 placed_items[location] = 'Gold Skulltula Token'
             else:
                 pool.append('Gold Skulltula Token')
+    elif world.tokensanity == 'overworld':
+        for location in skulltula_locations_final:
+            if world.get_location(location).scene < 0x0A:
+                placed_items[location] = 'Gold Skulltula Token'
+            else:
+                pool.append('Gold Skulltula Token')
     else:
         pool.extend(['Gold Skulltula Token'] * 100)
 
@@ -763,6 +1056,9 @@ def get_pool_core(world):
 
     if world.shuffle_gerudo_card and world.gerudo_fortress != 'open':
         pool.append('Gerudo Membership Card')
+    elif world.shuffle_gerudo_card:
+        pending_junk_pool.append('Gerudo Membership Card')
+        placed_items['Gerudo Fortress Membership Card'] = 'Ice Trap'
     else:
         placed_items['Gerudo Fortress Membership Card'] = 'Gerudo Membership Card'
 
@@ -785,7 +1081,8 @@ def get_pool_core(world):
         shop_item_count = shop_slots_count - shop_nonitem_count
 
         pool.extend(random.sample(remain_shop_items, shop_item_count))
-        pool.extend(get_junk_item(shop_nonitem_count))
+        if shop_nonitem_count:
+            pool.extend(get_junk_item(shop_nonitem_count))
         if world.shopsanity == '0':
             pool.extend(normal_rupees)
         else:
@@ -859,14 +1156,12 @@ def get_pool_core(world):
     if world.dungeon_mq['Spirit Temple']:
         pool.extend(SpT_MQ)
     else:
-        placed_items['Spirit Temple Nut Crate'] = 'Deku Nut Drop'
         pool.extend(SpT_vanilla)
     if world.dungeon_mq['Shadow Temple']:
         pool.extend(ShT_MQ)
     else:
         pool.extend(ShT_vanilla)
     if not world.dungeon_mq['Bottom of the Well']:
-        placed_items['Bottom of the Well Stick Pot'] = 'Deku Stick Drop'
         pool.extend(BW_vanilla)
     if world.dungeon_mq['Gerudo Training Grounds']:
         pool.extend(GTG_MQ)
@@ -877,26 +1172,27 @@ def get_pool_core(world):
     else:
         pool.extend(GC_vanilla)
 
-    for _ in range(normal_bottle_count):
-        bottle = random.choice(normal_bottles)
-        pool.append(bottle)
+    for i in range(bottle_count):
+        if i >= ruto_bottles:
+            bottle = random.choice(normal_bottles)
+            pool.append(bottle)
+        else:
+            pool.append('Bottle with Letter')
 
     earliest_trade = tradeitemoptions.index(world.logic_earliest_adult_trade)
     latest_trade = tradeitemoptions.index(world.logic_latest_adult_trade)
     if earliest_trade > latest_trade:
         earliest_trade, latest_trade = latest_trade, earliest_trade
     tradeitem = random.choice(tradeitems[earliest_trade:latest_trade+1])
+    world.selected_adult_trade_item = tradeitem
     pool.append(tradeitem)
 
     pool.extend(songlist)
-    if world.start_with_fast_travel:
-        pool.remove('Prelude of Light')
-        pool.remove('Serenade of Water')
-        pool.remove('Farores Wind')
-        world.state.collect(ItemFactory('Prelude of Light'))
-        world.state.collect(ItemFactory('Serenade of Water'))
-        world.state.collect(ItemFactory('Farores Wind'))
-        pool.extend(get_junk_item(3))
+    if world.free_scarecrow:
+        world.state.collect(ItemFactory('Scarecrow Song'))
+    
+    if world.no_epona_race:
+        world.state.collect(ItemFactory('Epona', event=True))
 
     if world.shuffle_mapcompass == 'remove' or world.shuffle_mapcompass == 'startwith':
         for item in [item for dungeon in world.dungeons for item in dungeon.dungeon_items]:
@@ -907,13 +1203,61 @@ def get_pool_core(world):
             world.state.collect(item)
             pool.extend(get_junk_item())
     if world.shuffle_bosskeys == 'remove':
-        for item in [item for dungeon in world.dungeons for item in dungeon.boss_key]:
+        for item in [item for dungeon in world.dungeons if dungeon.name != 'Ganons Castle' for item in dungeon.boss_key]:
             world.state.collect(item)
             pool.extend(get_junk_item())
+    if world.shuffle_ganon_bosskey in ['remove', 'triforce']:
+        for item in [item for dungeon in world.dungeons if dungeon.name == 'Ganons Castle' for item in dungeon.boss_key]:
+            world.state.collect(item)
+            pool.extend(get_junk_item())
+
+    if world.shuffle_mapcompass == 'vanilla':
+        for location, item in vanillaMC.items():
+            try:
+                world.get_location(location)
+                placed_items[location] = item
+            except KeyError:
+                continue
+    if world.shuffle_smallkeys == 'vanilla':
+        for location, item in vanillaSK.items():
+            try:
+                world.get_location(location)
+                placed_items[location] = item
+            except KeyError:
+                continue
+        # Logic cannot handle vanilla key layout in some dungeons
+        # this is because vanilla expects the dungeon major item to be
+        # locked behind the keys, which is not always true in rando.
+        # We can resolve this by starting with some extra keys
+        if world.dungeon_mq['Spirit Temple']:
+            # Yes somehow you need 3 keys. This dungeon is bonkers
+            world.state.collect(ItemFactory('Small Key (Spirit Temple)'))
+            world.state.collect(ItemFactory('Small Key (Spirit Temple)'))
+            world.state.collect(ItemFactory('Small Key (Spirit Temple)'))
+        #if not world.dungeon_mq['Fire Temple']:
+        #    world.state.collect(ItemFactory('Small Key (Fire Temple)'))
+    if world.shuffle_bosskeys == 'vanilla':
+        for location, item in vanillaBK.items():
+            try:
+                world.get_location(location)
+                placed_items[location] = item
+            except KeyError:
+                continue
+
+
     if not world.keysanity and not world.dungeon_mq['Fire Temple']:
         world.state.collect(ItemFactory('Small Key (Fire Temple)'))
     if not world.dungeon_mq['Water Temple']:
         world.state.collect(ItemFactory('Small Key (Water Temple)'))
+
+    if world.triforce_hunt:
+        trifroce_count = int(world.triforce_goal_per_world * TriforceCounts[world.item_pool_value])
+        pending_junk_pool.extend(['Triforce Piece'] * trifroce_count)
+
+    if world.shuffle_ganon_bosskey in ['lacs_vanilla', 'lacs_medallions', 'lacs_stones', 'lacs_dungeons']:
+        placed_items['Zelda'] = 'Boss Key (Ganons Castle)'
+    elif world.shuffle_ganon_bosskey == 'vanilla':
+        placed_items['Ganons Tower Boss Key Chest'] = 'Boss Key (Ganons Castle)'
 
     if world.item_pool_value == 'plentiful':
         pool.extend(easy_items)
@@ -932,47 +1276,24 @@ def get_pool_core(world):
     for item,max in item_difficulty_max[world.item_pool_value].items():
         replace_max_item(pool, item, max)
 
-    if world.start_with_wallet:
-        replace_max_item(pool, 'Progressive Wallet', 0)
-        for i in [1, 2, 3]: # collect wallets
-            world.state.collect(ItemFactory('Progressive Wallet'))
+    # Make sure our pending_junk_pool is empty. If not, remove some random junk here.
+    if pending_junk_pool:
+        remove_junk_pool, _ = zip(*junk_pool_base)
+        remove_junk_pool = list(remove_junk_pool) + ['Recovery Heart', 'Bombs (20)', 'Arrows (30)', 'Ice Trap']
+
+        junk_candidates = [item for item in pool if item in remove_junk_pool]
+        while pending_junk_pool:
+            pending_item = pending_junk_pool.pop()
+            if not junk_candidates:
+                raise RuntimeError("Not enough junk exists in item pool for %s to be added." % pending_item)
+            junk_item = random.choice(junk_candidates)
+            junk_candidates.remove(junk_item)
+            pool.remove(junk_item)
+            pool.append(pending_item)
+
+    world.distribution.alter_pool(world, pool)
+
+    world.distribution.configure_starting_items_settings(world)
+    world.distribution.collect_starters(world.state)
 
     return (pool, placed_items)
-
-
-def choose_trials(world):
-    if world.trials_random:
-        world.trials = random.randint(0, 6)
-    num_trials = int(world.trials)
-    choosen_trials = random.sample(['Forest', 'Fire', 'Water', 'Spirit', 'Shadow', 'Light'], num_trials)
-    for trial in world.skipped_trials:
-        if trial not in choosen_trials:
-            world.skipped_trials[trial] = True
-
-
-def fill_bosses(world, bossCount=9):
-    boss_rewards = ItemFactory(rewardlist, world)
-    boss_locations = [
-        world.get_location('Queen Gohma'),
-        world.get_location('King Dodongo'),
-        world.get_location('Barinade'),
-        world.get_location('Phantom Ganon'),
-        world.get_location('Volvagia'),
-        world.get_location('Morpha'),
-        world.get_location('Bongo Bongo'),
-        world.get_location('Twinrova'),
-        world.get_location('Links Pocket')]
-
-    placed_prizes = [loc.item.name for loc in boss_locations if loc.item is not None]
-    unplaced_prizes = [item for item in boss_rewards if item.name not in placed_prizes]
-    empty_boss_locations = [loc for loc in boss_locations if loc.item is None]
-    prizepool = list(unplaced_prizes)
-    prize_locs = list(empty_boss_locations)
-
-    while bossCount:
-        bossCount -= 1
-        random.shuffle(prizepool)
-        random.shuffle(prize_locs)
-        item = prizepool.pop()
-        loc = prize_locs.pop()
-        world.push_item(loc, item)

@@ -1,3 +1,5 @@
+import io
+import json
 import os, os.path
 import subprocess
 import sys
@@ -52,6 +54,20 @@ def default_output_path(path):
     return path
 
 
+def read_json(file_path):
+    json_string = ""
+    with io.open(file_path, 'r') as file:
+        for line in file.readlines():
+            json_string += line.split('#')[0].replace('\n', ' ')
+    json_string = re.sub(' +', ' ', json_string)
+    try:
+        return json.loads(json_string)
+    except json.JSONDecodeError as error:
+        raise Exception("JSON parse error around text:\n" + \
+                        json_string[error.pos-35:error.pos+35] + "\n" + \
+                        "                                   ^^\n")
+
+
 def open_file(filename):
     if sys.platform == 'win32':
         os.startfile(filename)
@@ -68,6 +84,22 @@ def close_console():
         except Exception:
             pass
 
+def get_version_bytes(a):
+    version_bytes = [0x00, 0x00, 0x00]
+    if not a:
+        return version_bytes;
+    sa = a.replace('v', '').replace(' ', '.').split('.')
+
+    for i in range(0,3):
+        try:
+            version_byte = int(sa[i])
+        except ValueError:
+            break
+        version_bytes[i] = version_byte
+
+    return version_bytes
+
+
 def compare_version(a, b):
     if not a and not b:
         return 0
@@ -76,13 +108,13 @@ def compare_version(a, b):
     elif not a and b:
         return -1
 
-    sa = a.replace('v', '').replace(' ', '.').split('.')
-    sb = b.replace('v', '').replace(' ', '.').split('.')
+    sa = get_version_bytes(a)
+    sb = get_version_bytes(b)
 
     for i in range(0,3):
-        if int(sa[i]) > int(sb[i]):
+        if sa[i] > sb[i]:
             return 1
-        if int(sa[i]) < int(sb[i]):
+        if sa[i] < sb[i]:
             return -1
     return 0
 
@@ -161,4 +193,4 @@ def subprocess_args(include_stdout=True):
 def check_python_version():
     python_version = '.'.join([str(num) for num in sys.version_info[0:3]])
     if compare_version(python_version, '3.6.0') < 0:
-        raise Exception('Randomizer requires at least version 3.6 and you are using %s' % python_version)
+        raise VersionError('Randomizer requires at least version 3.6 and you are using %s' % python_version, "https://www.python.org/downloads/")

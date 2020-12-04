@@ -16,6 +16,14 @@ class RegionType(Enum):
         return self in (RegionType.Interior, RegionType.Dungeon, RegionType.Grotto)
 
 
+# Pretends to be an enum, but when the values are raw ints, it's much faster
+class TimeOfDay(object):
+    NONE = 0
+    DAY = 1
+    DAMPE = 2
+    ALL = DAY | DAMPE
+
+
 class Region(object):
 
     def __init__(self, name, type=RegionType.Overworld):
@@ -26,18 +34,22 @@ class Region(object):
         self.locations = []
         self.dungeon = None
         self.world = None
-        self.spot_type = 'Region'
-        self.recursion_count = 0
+        self.hint = None
         self.price = None
         self.world = None
+        self.time_passes = False
+        self.provides_time = TimeOfDay.NONE
+        self.scene = None
 
 
     def copy(self, new_world):
         new_region = Region(self.name, self.type)
         new_region.world = new_world
-        new_region.spot_type = self.spot_type
         new_region.price = self.price
-        new_region.can_reach = self.can_reach
+        new_region.hint = self.hint
+        new_region.time_passes = self.time_passes
+        new_region.provides_time = self.provides_time
+        new_region.scene = self.scene
 
         if self.dungeon:
             new_region.dungeon = self.dungeon.name
@@ -47,24 +59,23 @@ class Region(object):
         return new_region
 
 
-    def can_reach(self, state):
-        for entrance in self.entrances:
-            if state.can_reach(entrance):
-                return True
-        return False
-
-
-    def can_fill(self, item):
+    def can_fill(self, item, manual=False):
         is_dungeon_restricted = False
         if item.map or item.compass:
-            is_dungeon_restricted = self.world.shuffle_mapcompass == 'dungeon'
+            is_dungeon_restricted = self.world.shuffle_mapcompass in ['dungeon', 'vanilla']
         elif item.smallkey and item.type != 'FortressSmallKey':
-            is_dungeon_restricted = self.world.shuffle_smallkeys == 'dungeon'
-        elif item.bosskey:
-            is_dungeon_restricted = self.world.shuffle_bosskeys == 'dungeon'
+            is_dungeon_restricted = self.world.shuffle_smallkeys in ['dungeon', 'vanilla']
+        elif item.bosskey and not item.name.endswith('(Ganons Castle)'):
+            is_dungeon_restricted = self.world.shuffle_bosskeys in ['dungeon', 'vanilla']
+        elif item.bosskey and item.name.endswith('(Ganons Castle)'):
+            is_dungeon_restricted = self.world.shuffle_ganon_bosskey in ['dungeon', 'vanilla']
 
-        if is_dungeon_restricted:
+        if is_dungeon_restricted and not manual:
             return self.dungeon and self.dungeon.is_dungeon_item(item) and item.world.id == self.world.id
+
+        if item.name == 'Triforce Piece':
+            return item.world.id == self.world.id
+
         return True
 
 
